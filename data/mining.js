@@ -1,0 +1,7 @@
+// data/mining.js
+export const ROCKS = [
+    { id:'copper', name:'Copper Rock', level:1, baseTime:2500, drop:'ore_copper', xp:10 },
+    { id:'tin_rock',    name:'Tin Seam',     level:3,  baseTime:3200, xp:14, drop:'ore_tin' },
+    { id:'iron_rock',   name:'Iron Deposit', level:10, baseTime:4000, xp:25, drop:'ore_iron' },
+  ];
+  
