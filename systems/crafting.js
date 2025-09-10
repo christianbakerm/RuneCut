@@ -10,7 +10,7 @@ function levelOf(state, skill){
   if(skill==='fish')  return levelFromXp(state.fishXp||0, XP);
   if(skill==='min')   return levelFromXp(state.minXp||0, XP);
   if(skill==='smith') return levelFromXp(state.smithXp||0, XP);
-  if(skill==='craft') return levelFromXp(state.craftXp||0, XP); // ← NEW
+  if(skill==='craft') return levelFromXp(state.craftXp||0, XP);
   return 1;
 }
 function speedMult(state, recipe){
@@ -54,7 +54,7 @@ export function finishOneCraft(state){
 
   // award XP to the correct skill
   if(r.xp?.skill && r.xp?.amount){
-    if(r.xp.skill==='craft') state.craftXp = (state.craftXp||0) + r.xp.amount; // ← NEW
+    if(r.xp.skill==='craft') state.craftXp = (state.craftXp||0) + r.xp.amount;
     else if(r.xp.skill==='wc')    state.wcXp    = (state.wcXp||0)    + r.xp.amount;
     else if(r.xp.skill==='fish')  state.fishXp  = (state.fishXp||0)  + r.xp.amount;
     else if(r.xp.skill==='min')   state.minXp   = (state.minXp||0)   + r.xp.amount;

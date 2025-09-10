@@ -85,6 +85,7 @@
       <section class="card" id="areasCard">
         <div class="tabs">
           <button class="tab active" data-tab="forests">🌲 Forests</button>
+          <button class="tab" data-tab="crafting">🪚 Crafting</button>
           <button class="tab" data-tab="fishing">🎣 Fishing</button>
           <button class="tab" data-tab="cooking">🍳 Cooking</button>
           <button class="tab" data-tab="mining">⛏️ Mining</button>
@@ -104,17 +105,25 @@
             <div class="bar" id="actionBar"></div>
             <div class="label" id="actionLabel">Idle</div>
           </div>
-
-          <div class="cols-2">
-            <div class="card" style="padding:10px;">
-              <h2 style="margin-bottom:6px;">🛒 Shop</h2>
-              <div id="shop" class="shop"></div>
-            </div>
             <div class="card" style="padding:10px;">
               <h2 style="margin-bottom:6px;">📜 Log</h2>
               <div id="log" class="log" aria-live="polite"></div>
             </div>
+        </div>
+
+        <!-- Crafting panel -->
+        <div class="tabpanel hidden" id="tab-crafting">
+          <h2>🪚 Crafting</h2>
+          <p class="small muted" style="margin:6px 0;">Craft items from gathered materials. Higher <b>Crafting</b> level speeds crafting.</p>
+
+          <div id="craftList" class="shop" style="margin-top:6px;"></div>
+
+          <div class="progress" style="margin-top:8px;">
+            <div class="bar" id="craftBar"></div>
+            <div class="label" id="craftLabel">Idle</div>
           </div>
+
+          <div id="craftLog" class="log" aria-live="polite" style="margin-top:8px;"></div>
         </div>
 
         <!-- Fishing panel -->

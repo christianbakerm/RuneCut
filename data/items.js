@@ -13,8 +13,8 @@ export const ITEMS = {
     wooden_shield: { id:'wooden_shield', name:'Wooden Shield', type:'equipment', slot:'shield', def:3, icon:'🛡️' },
   
     // Tools
-    axe_bronze: { id:'axe_bronze', name:'Bronze Axe', type:'equipment', slot:'axe', speed:1.25, img:'assets/items/bronze-axe.png' },
-    pick_bronze: { id:'pick_bronze', name:'Bronze Pick', type:'equipment', slot:'pick', speed:1.25, img:'assets/items/bronze-axe.png' },
+    axe_copper: { id:'axe_copper', name:'Copper Axe', type:'equipment', slot:'axe', speed:1.25, img:'assets/items/bronze-axe.png' },
+    pick_copper: { id:'pick_copper', name:'Copper Pick', type:'equipment', slot:'pick', speed:1.25, img:'assets/items/bronze-axe.png' },
 
     // Fishing resources
     raw_shrimps: { id:'raw_shrimps', name:'Raw Shrimps', type:'resource', sell:1, icon:'🦐' },

@@ -2,14 +2,14 @@
 export function defaultState(){
   return {
     gold:0,
-    wcXp:0, fishXp:0, minXp:0, smithXp:0, atkXp:0, strXp:0, defXp:0, smithXp:0, craftXp:0, 
+    wcXp:0, fishXp:0, minXp:0, smithXp:0, atkXp:0, strXp:0, defXp:0, smithXp:0, craftXp:0, cookXp:0,
     inventory:{},
     equipment:{
       axe:null, pick:null, weapon:null, shield:null,
       head:null, body:null, legs:null, gloves:null, boots:null,
       amulet:null, ring:null, cape:null
     },
-    logs: [],              // {t:number, type:'combat'|'skilling'|..., msg:string}
+    logs: [],
     logFilter: 'all',
     selectedTreeId:'oak',
     selectedSpotId:'pond_shallows',

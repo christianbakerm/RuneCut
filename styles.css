@@ -261,3 +261,28 @@ footer { margin-top: 10px; color: var(--text-dim); font-size: 12px; text-align: 
   background: linear-gradient(180deg, #2330a5, #1b2688);
   border-color:#2e3ac9;
 }
+
+html, body {            /* let the page grow; don't lock height to viewport */
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+}
+
+/* prevent grid/children from blocking overflow in nested contexts */
+.grid, .card, .tabpanel { min-height: 0; }
+
+/* give the main cards their own scroll area */
+#skillsCard,
+#areasCard,
+#smithingCard,
+#craftingCard,
+#equipmentCard {
+  max-height: calc(100vh - 130px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch; 
+}
+
+#forgeList {
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+}

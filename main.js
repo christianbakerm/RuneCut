@@ -16,10 +16,17 @@ import { addItem, removeItem, addGold } from './systems/inventory.js';
 import { equipItem, unequipItem } from './systems/equipment.js';
 import { SMELT_RECIPES, FORGE_RECIPES } from './data/smithing.js';
 import { canSmelt, startSmelt, finishSmelt, canForge, startForge, finishForge } from './systems/smithing.js';
-import { resolveItem } from './systems/itemutil.js';
+import { CRAFT_RECIPES } from './data/crafting.js';
+import { canCraft, maxCraftable, startCraft, finishOneCraft } from './systems/crafting.js';
 
 let state = loadState() || defaultState();
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+// --- Level helpers  ---
+const SKILL_LABEL = { wc:'Woodcutting', fish:'Fishing', min:'Mining', smith:'Smithing', craft:'Crafting', atk:'Attack', str:'Strength', def:'Defense' };
+function lvlOf(skill){ return levelFromXp((state[skill+'Xp']||0), XP_TABLE); }
+function hasLevel(skill, need=1){ return lvlOf(skill) >= need; }
+function reqText(skill, need){ return `${SKILL_LABEL[skill]||skill} level ${need} required.`; }
+
 
 state.equipment = {
   axe:null, weapon:null, shield:null,
@@ -59,8 +66,6 @@ const el = {
   strLevelMini: qs('#strLevelMini'), strBarMini: qs('#strBarMini'),
   defLevelMini: qs('#defLevelMini'), defBarMini: qs('#defBarMini'),
   smithLevelMini: qs('#smithLevelMini'), smithBarMini: qs('#smithBarMini'),
-  globalLog: qs('#globalLog'),
-  logFilters: qs('#logFilters'), 
   gold: qs('#gold'),
 
   // character panel
@@ -77,6 +82,13 @@ const el = {
   // woodcutting
   treeSelect: qs('#treeSelect'), chopBtn: qs('#chopBtn'), actionBar: qs('#actionBar'), actionLabel: qs('#actionLabel'),
 
+  // crafting
+  craftPanel:  qs('#tab-crafting'),
+  craftList:   qs('#craftList'),
+  craftBar:    qs('#craftBar'),
+  craftLabel:  qs('#craftLabel'),
+  craftLog:    qs('#craftLog'),
+
   // fishing
   spotSelect: qs('#spotSelect'), fishBtn: qs('#fishBtn'),
   fishBar: qs('#fishBar'), fishLabel: qs('#fishLabel'), fishLog: qs('#fishLog'),
@@ -88,7 +100,6 @@ const el = {
   cookPerfectZone: qs('#cookPerfectZone'),
   cookHint: qs('#cookHint'),
   cookLog: qs('#cookLog'),
-
 
   // Mining
   rockSelect: qs('#rockSelect'), mineBtn: qs('#mineBtn'),
@@ -119,9 +130,13 @@ const el = {
   monsterCardLevel: qs('#monsterCardLevel'),
   monsterCardStats: qs('#monsterCardStats'),
 
-
   // lists/logs
-  shop: qs('#shop'), inventory: qs('#inventory'), log: qs('#log'), combatLog: qs('#combatLog'), cookList: qs('#cookList'),
+  inventory: qs('#inventory'), 
+  log: qs('#log'), 
+  combatLog: qs('#combatLog'), 
+  cookList: qs('#cookList'),
+  globalLog: qs('#globalLog'),
+  logFilters: qs('#logFilters'), 
 
   // equipment grid + tooltip
   equipmentGrid: qs('#equipmentGrid'), tooltip: qs('#tooltip'),
@@ -185,19 +200,35 @@ function renderEquipmentGrid(){
 
 function populate(){
   // Trees
-  if(el.treeSelect){
-    el.treeSelect.innerHTML='';
-    TREES.forEach(t=>{ const o=document.createElement('option'); o.value=t.id; o.textContent=`${t.name} (Lvl ${t.level})`; el.treeSelect.appendChild(o); });
+  if (el.treeSelect){
+    el.treeSelect.innerHTML = '';
+    const wc = lvlOf('wc');
+    TREES.forEach(t=>{
+      const o = document.createElement('option');
+      const locked = wc < (t.level||1);
+      o.value = t.id;
+      o.disabled = locked;
+      o.textContent = `${t.name} (Lvl ${t.level||1})${locked?' 🔒':''}`;
+      el.treeSelect.appendChild(o);
+    });
+    // keep previous selection if still allowed, otherwise pick first unlocked
+    if (![...el.treeSelect.options].some(op=>op.value===state.selectedTreeId && !op.disabled)){
+      const firstOpen = [...el.treeSelect.options].find(op=>!op.disabled);
+      state.selectedTreeId = firstOpen ? firstOpen.value : (TREES[0]?.id || '');
+    }
     el.treeSelect.value = state.selectedTreeId;
   }
 
   // Fishing spots
-  // Fishing spots
   if(el.spotSelect){
+    const fishLv = lvlOf('fish');
     el.spotSelect.innerHTML='';
     FISHING_SPOTS.forEach(s=>{
+      const need = s.level || 1;
+      const locked = fishLv < need;
       const o=document.createElement('option');
-      o.value=s.id; o.textContent=`${s.name} (Lvl ${s.level})`;
+      o.value=s.id; 
+      o.textContent = `${s.name} (Lvl ${need})${locked ? ' 🔒' : ''}`;
       el.spotSelect.appendChild(o);
     });
     el.spotSelect.value = state.selectedSpotId;
@@ -249,25 +280,6 @@ el.monsterSelect.addEventListener('change', ()=>{
   renderMonsterCard(); saveState(state);
 });
 
-
-const SHOP = [
-  { itemId:'axe_bronze', price:5 },
-  { itemId:'rusty_sword', price:12 },
-  { itemId:'pick_bronze', price:5 }
-];
-
-function buildItemSummary(it){
-  if(!it) return '—';
-  const p=[];
-  if(it.atk) p.push(`+${it.atk} Atk`);
-  if(it.str) p.push(`+${it.str} Str`);
-  if(it.def) p.push(`+${it.def} Def`);
-  if(it.hp)  p.push(`+${it.hp} HP`);
-  if(it.speed) p.push(`Speed ${it.speed.toFixed(2)}×`);
-  if(it.heal)  p.push(`Heals ${it.heal}`);
-  return p.join(', ') || '—';
-}
-
 function showTip(evt, title, body){
   if(!el.tooltip) return;
   const htmlBody = body ? `<div class="muted">${String(body).replace(/\n/g,'<br>')}</div>` : '';
@@ -289,13 +301,13 @@ function setTab(name){
   document.querySelectorAll('.tab').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === name);
   });
-  ['forests','fishing','cooking','mining','smithing','combat'].forEach(t => {
+  ['forests','crafting','fishing','cooking','mining','smithing','combat'].forEach(t => {
     const p = document.getElementById(`tab-${t}`);
     if (p) p.classList.toggle('hidden', t !== name);
   });
 }
 
-function render(){ renderStats(); renderInventory(); renderShop(); renderAction(); renderEquipmentGrid(); renderCombatHud(); renderMonsterCard(); renderCookingList(); renderSmithing(); renderPanelLogs();}
+function render(){ renderStats(); renderInventory(); renderAction(); renderEquipmentGrid(); renderCombatHud(); renderMonsterCard(); renderCookingList(); renderSmithing(); renderPanelLogs(); renderCrafting();}
 
 function renderMini(levelEl, barEl, xp){
   const p = progressFor(xp, XP_TABLE);
@@ -350,13 +362,9 @@ function renderGlobalInto(targetEl, types){
 function renderPanelLogs(){
   // Woodcutting / general skilling area
   renderGlobalInto(el.log,      ['skilling','crafting','economy']);
-  // Fishing panel
   renderGlobalInto(el.fishLog,  ['skilling','economy']);
-  // Mining panel (if present)
   renderGlobalInto(el.mineLog,  ['skilling','economy']);
-  // Smithing panel (if present)
   renderGlobalInto(el.smithLog, ['smithing','crafting','economy']);
-  // Combat panel
   renderGlobalInto(el.combatLog,['combat','economy']);
 }
 
@@ -457,25 +465,6 @@ function renderInventory(){
   }).join('');
 }
 
-
-
-
-function renderShop(){
-  el.shop.innerHTML = SHOP.map(s=>{
-    const it=ITEMS[s.itemId];
-    return `<div class="shop-item">
-      <div>
-        <div><b>${it.icon||''} ${it.name}</b></div>
-        <div class="small muted">${buildItemSummary(it)}</div>
-      </div>
-      <div class="row">
-        <div class="pill"><span class="gold">${s.price}g</span></div>
-        <button class="btn-success" data-buy="${s.itemId}" data-price="${s.price}">Buy</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
 function renderAction(){
   el.chopBtn.disabled = (!!state.action && state.action.type!=='chop') || !!state.combat;
   el.fishBtn && (el.fishBtn.disabled = (!!state.action && state.action.type!=='fish') || !!state.combat);
@@ -483,6 +472,10 @@ function renderAction(){
   el.fightBtn.disabled = !!state.combat || (!!state.action && (state.action.type==='chop'||state.action.type==='fish'));
   el.attackTurnBtn.disabled = !state.combat;
   el.fleeBtn.disabled = !state.combat;
+  const spot = FISHING_SPOTS?.find(s => s.id === state.selectedSpotId);
+  const need = spot?.level || 1;
+  const fishLocked = !spot || (lvlOf('fish') < need);
+  if (el.fishBtn) el.fishBtn.disabled = fishLocked || (!!state.action && state.action.type!=='fish') || !!state.combat;
 }
 
 function renderCookingList(){
@@ -509,21 +502,9 @@ function renderCookingList(){
   }).join('');
 }
 
-function itemName(id){ const it = resolveItem(ITEMS, id); return it ? (it.name || id) : id; }
-function itemSummary(id){
-  const it = resolveItem(ITEMS, id); if(!it) return '—';
-  const bits = [];
-  if(it.atk) bits.push(`+${it.atk} Atk`);
-  if(it.str) bits.push(`+${it.str} Str`);
-  if(it.def) bits.push(`+${it.def} Def`);
-  if(it.hp)  bits.push(`+${it.hp} HP`);
-  if(it.sell) bits.push(`${it.sell}g`);
-  return bits.join(', ') || '—';
-}
-
 function renderForgeList(){
   if(!el.forgeList) return;
-  const haveBars = state.inventory['copper_bar']||0;
+  const haveBars = state.inventory['bar_copper']||0;
   el.forgeList.innerHTML = FORGE_RECIPES.map(r=>{
     const base = ITEMS[r.id];
     const isEquip = base?.type === 'equipment';
@@ -545,7 +526,6 @@ function renderForgeList(){
     </div>`;
   }).join('');
 }
-
 
 function renderCombatHud(){
   const maxHp = hpMaxFor(state);
@@ -661,6 +641,7 @@ function xpForSkill(id){
   switch(id){
     case 'wc':  return state.wcXp  ?? 0;
     case 'fish':return state.fishXp?? 0;
+    case 'cook': return state.cookXp|| 0;
     case 'craft': return state.craftXp || 0;
     case 'min': return state.minXp ?? 0;
     case 'atk': return state.atkXp ?? 0;
@@ -669,30 +650,6 @@ function xpForSkill(id){
     default:    return 0;
   }
 }
-
-function skillHoverHtml(name, xp){
-  const lvl  = levelFromXp(xp, XP_TABLE);
-  const prev = XP_TABLE[lvl] ?? 0;
-  const next = XP_TABLE[lvl+1] ?? XP_TABLE[lvl]; // handles max level
-  const into = Math.max(0, xp - prev);
-  const span = Math.max(1, next - prev);
-  const need = Math.max(0, next - xp);
-  const pct  = Math.floor((into / span) * 100);
-
-  return `
-    <div>
-      <div><b>${name}</b> — Lvl <b>${lvl}</b></div>
-      <div class="small muted">
-        ${xp.toLocaleString()} XP · ${into.toLocaleString()}/${span.toLocaleString()} to next
-        (${pct}%) · Need: ${need.toLocaleString()} XP
-      </div>
-    </div>
-  `;
-}
-
-
-// ---- Smithing helpers ----
-const smithLevel = ()=> levelFromXp(state.smithXp||0, XP_TABLE);
 
 // Skewed upgrade amount: +10–25%, higher levels bias toward 25%
 function rollUpgradePercent(lvl){
@@ -762,125 +719,74 @@ el.inventory?.addEventListener('click', (e)=>{
   if(eatItem(id)){ render(); saveState(state); }
 });
 
-
-
-// Collect inventory + equipped copper equipment below 100% quality
-function listUpgradable(){
-  const out=[];
-  // inventory
-  for(const [id, qty] of Object.entries(state.inventory)){
-    if(qty<=0) continue;
-    const base = baseId(id);
-    const def = ITEMS[base];
-    if(!def || def.type!=='equipment') continue;
-    if(!/^copper_/.test(base)) continue;
-    const q = qualityPct(id);
-    if(q>=100) continue;
-    out.push({ source:'inv', id, base, q });
-  }
-  // equipped
-  for(const [slot, id] of Object.entries(state.equipment||{})){
-    if(!id) continue;
-    const base = baseId(id);
-    const def = ITEMS[base];
-    if(!def || def.type!=='equipment') continue;
-    if(!/^copper_/.test(base)) continue;
-    const q = qualityPct(id);
-    if(q>=100) continue;
-    out.push({ source:'equip', id, base, q, slot });
-  }
-  return out;
-}
-
-// Craft upgrade bars: 3x copper_bar -> 1x copper_upgrade_bar (+Smithing XP)
+// Craft upgrade bars: 3x bar_copper -> 1x copper_upgrade_bar (+Smithing XP)
 function makeUpgradeBars(count){
-  const have = state.inventory['copper_bar']||0;
+  const have = state.inventory['bar_copper']||0;
   const possible = Math.floor(have/3);
   const n = clamp(count, 0, possible);
   if(n<=0) return false;
-  removeItem(state, 'copper_bar', 3*n);
+  removeItem(state, 'bar_copper', 3*n);
   addItem(state, 'copper_upgrade_bar', n);
   state.smithXp = (state.smithXp||0) + 8*n;
   pushSmithLog(`Crafted ${n} Copper Upgrade Bar${n>1?'s':''} (+${8*n} Smithing XP).`);
   return true;
 }
 
-function applyUpgradeFromSelect(){
-  const val = el.upgradeTarget?.value;
-  if(!val) return false;
-  // value encoding: source|id|slot?
-  const [source, id, slot] = val.split('|');
-  return applyUpgrade({source, id, slot: slot || null});
-}
-
-function applyUpgrade(target){
-  if((state.inventory['copper_upgrade_bar']||0) <= 0) return false;
-  const pool = listUpgradable();
-  let t = target;
-  if(typeof target === 'string'){
-    t = pool.find(x=>x.id===target);
-  } else {
-    t = pool.find(x=> x.id===target.id && x.source===target.source && (x.slot||'')===(target.slot||''));
-  }
-  if(!t) return false;
-
-  const lvl = smithLevel();
-  const inc = rollUpgradePercent(lvl);
-  const oldQ = qualityPct(t.id);
-  const newQ = clamp(oldQ + inc, 1, 100);
-  const newId = `${t.base}@${newQ}`;
-
-  // consume 1 upgrade bar
-  removeItem(state, 'copper_upgrade_bar', 1);
-
-  if(t.source==='inv'){
-    removeItem(state, t.id, 1);
-    addItem(state, newId, 1);
-  } else {
-    // equipped
-    state.equipment[t.slot] = newId;
-  }
-
-  // small XP for the upgrade itself
-  state.smithXp = (state.smithXp||0) + (5 + Math.max(0, inc-10));
-
-  pushSmithLog(`Upgraded ${ITEMS[t.base]?.name||t.base}: ${oldQ}% → ${newQ}% (+${inc}%).`);
-  return true;
-}
-
-
-
-function labelForBar(barId){
-  if (!barId) return 'Bars';
-  if (SMELT_RECIPES[barId]?.name) return SMELT_RECIPES[barId].name;
-  const base = barId.replace(/^bar_/, '').replace(/_/g,' ');
-  return base.charAt(0).toUpperCase()+base.slice(1)+' Bar';
-}
-
 // Refresh Smithing panel
+
 function renderSmithing(){
   el.oreCopperCount && (el.oreCopperCount.textContent = state.inventory['ore_copper'] || 0);
   el.copperBarCount && (el.copperBarCount.textContent = state.inventory['bar_copper'] || 0);
+  if (el.upgradeBarCount) el.upgradeBarCount.textContent = state.inventory['copper_upgrade_bar'] || 0;
+
   if (el.smithLabel && (!state.action || state.action.type!=='smith')) el.smithLabel.textContent = 'Idle';
 
-  if (!el.forgeList) return;
-  const busy = !!state.action;
-  el.forgeList.innerHTML = FORGE_RECIPES.map(r=>{
-    const can = !busy && canForge(state, r.id);
-    return `
-      <div class="shop-item">
-        <div>
-          <div><b>${r.name || r.id}</b></div>
-          <div class="small muted">Cost: <b>${r.bars}× ${labelForBar(r.barId)}</b> · Time: ${(r.time/1000).toFixed(1)}s</div>
-        </div>
-        <button class="btn-primary" data-forge="${r.id}" ${can?'':'disabled'}>Forge</button>
-      </div>
-    `;
-  }).join('');
+  // Compute your current Smithing level once
+const smithLvl = levelFromXp(state.smithXp || 0, XP_TABLE);
 
-  if (el.upgradeBarCount) {
-    el.upgradeBarCount.textContent = state.inventory['copper_upgrade_bar'] || 0;
-  }
+if (!el.forgeList) return;
+const busy = !!state.action;
+
+el.forgeList.innerHTML = FORGE_RECIPES.map(r=>{
+  const haveBars = state.inventory['bar_copper'] || 0; // keep your current key if that's what you use
+  const costBars = `${r.bars}× ${ITEMS['bar_copper']?.name || 'Copper Bar'} <span class="muted">(${haveBars})</span>`;
+
+  const extras = r.extras || [];
+  const extrasStr = extras.map(ex=>{
+    const have = state.inventory[ex.id] || 0;
+    const name = ITEMS[ex.id]?.name || ex.id;
+    return `${ex.qty}× ${name} <span class="muted">(${have})</span>`;
+  }).join(' + ');
+
+  const costStr = extrasStr ? `${costBars} + ${extrasStr}` : costBars;
+
+  // NEW: required level & lock
+  const need   = r.level || 1;
+  const locked = smithLvl < need;
+  const gateNote = locked
+    ? ` · <span class="muted">Requires Smithing ${need}</span>`
+    : ` · <span class="muted">Req: Smithing ${need}</span>`;
+
+  const xp  = r.xp ?? 0;
+  const can = !busy && !locked && canForge(state, r.id);
+
+  return `
+    <div class="shop-item">
+      <div>
+        <div><b>${r.name || r.id}</b></div>
+        <div class="small muted">
+          Cost: <b>${costStr}</b> · Time: ${(r.time/1000).toFixed(1)}s · XP: ${xp}${gateNote}
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn-primary" data-forge="${r.id}" ${can ? '' : 'disabled'} ${locked ? `title="Requires Smithing ${need}"` : ''}>
+          Forge
+        </button>
+      </div>
+    </div>
+  `;
+}).join('');
+
 
   if (el.upgradeTarget) {
     const eligible = Object.keys(state.inventory || {}).filter(id=>{
@@ -905,7 +811,69 @@ function renderSmithing(){
     el.applyUpgradeBtn && (el.applyUpgradeBtn.disabled = !eligible.length || (state.inventory['copper_upgrade_bar']||0) <= 0);
   }
 }
+ // ---- Crafting ---- //
 
+function pushCraftLog(msg){
+  // writes into panel and, if you have a global logger, mirrors there too
+  if(el.craftLog){
+    const p=document.createElement('p');
+    p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    el.craftLog.appendChild(p); el.craftLog.scrollTop = el.craftLog.scrollHeight;
+  }
+  if (typeof logEvent === 'function') logEvent('crafting', msg);
+  if (typeof renderPanelLogs === 'function') renderPanelLogs();
+}
+
+function renderCrafting(){
+  if(!el.craftList) return;
+  const busy = !!state.action;
+  el.craftList.innerHTML = Object.values(CRAFT_RECIPES).map(r=>{
+    const haveMax = maxCraftable(state, r.id);
+    const can1 = !busy && haveMax >= 1;
+    const cost = (r.inputs||[]).map(i=>`${i.qty}× ${ITEMS[i.id]?.name||i.id}`).join(' + ');
+    const out  = (r.outputs||[]).map(o=>`${o.qty}× ${ITEMS[o.id]?.name||o.id}`).join(' + ');
+    return `
+      <div class="shop-item">
+        <div>
+          <div><b>${r.name}</b></div>
+          <div class="small muted">Cost: <b>${cost||'—'}</b> → ${out||'—'} · Time: ${(r.time/1000).toFixed(1)}s</div>
+        </div>
+        <div class="row">
+          <button class="btn-primary" data-craft="${r.id}" data-count="1" ${can1?'':'disabled'}>Make 1</button>
+          <button class="btn-primary" data-craft="${r.id}" data-count="${haveMax}" ${(!busy && haveMax>1)?'':'disabled'}>Make All (${haveMax})</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+el.craftList?.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-craft]'); if(!btn) return;
+  const id    = btn.dataset.craft;
+  const count = Math.max(1, parseInt(btn.dataset.count||'1',10));
+
+  if (!canCraft(state, id, 1)){
+    pushCraftLog('Not enough materials.');
+    return;
+  }
+
+  if (!state.action && startCraft(state, id, count)){
+    const r       = CRAFT_RECIPES[id] || {};
+    const name    = r.name || id;
+    const perXp   = r.xp?.amount || 0;
+    const xpSkill = r.xp?.skill || 'craft';
+    const totalXp = perXp * count;
+
+    if (el.craftLabel) el.craftLabel.textContent = `Crafting ${name}…`;
+    const skillLabel = ({craft:'Crafting', wc:'Woodcutting', fish:'Fishing', min:'Mining', smith:'Smithing',
+                         atk:'Attack', str:'Strength', def:'Defense'})[xpSkill] || 'XP';
+    const xpText = perXp
+      ? ` (+${perXp} ${skillLabel} XP each${count>1?`, +${totalXp} total`:''})`
+      : '';
+
+    pushCraftLog(`Started crafting ${name}${count>1?` ×${count}`:''}${xpText}…`);
+    saveState(state);
+  }
+});
 
 // Build tooltip content for any item id (inventory or equipped)
 function tipForItem(id){
@@ -1034,16 +1002,30 @@ el.rockSelect?.addEventListener('change', ()=>{ state.selectedRockId = el.rockSe
 
 el.chopBtn?.addEventListener('click', ()=>{
   if(state.combat) return;
-  startChop(state);
   const tree = TREES.find(t=>t.id===state.selectedTreeId);
-  el.actionLabel.textContent = `Chopping ${tree.name}…`;
+  const need = tree?.level || 1;
+  if (!hasLevel('wc', need)){
+    if (typeof pushLog === 'function') pushLog(reqText('wc', need));
+    return;
+  }
+  startChop(state);
+  if (tree && el.actionLabel) el.actionLabel.textContent = `Chopping ${tree.name}…`;
 });
 
 el.fishBtn?.addEventListener('click', ()=>{
-  if(state.combat) return;
-  startFish(state);
   const spot = FISHING_SPOTS.find(s=>s.id===state.selectedSpotId);
-  el.fishLabel.textContent = `Fishing at ${spot.name}…`;
+  if(!spot) return;
+  const need = spot.level || 1;
+  if (lvlOf('fish') < need){
+    if (typeof appendLog === 'function') appendLog(el.fishLog, `Requires Fishing ${need}.`);
+    else if (el.fishLog){ const p=document.createElement('p'); p.textContent=`Requires Fishing ${need}.`; el.fishLog.appendChild(p); }
+    return;
+  }
+  if (typeof startFish === 'function' && !state.action){
+    startFish(state);
+    if (el.fishLabel) el.fishLabel.textContent = `Fishing ${spot.name}…`;
+    saveState(state);
+  }
 });
 
 el.mineBtn?.addEventListener('click', ()=>{
@@ -1070,7 +1052,10 @@ el.smeltOneBtn?.addEventListener('click', ()=>{
 // Smelt All
 el.smeltAllBtn?.addEventListener('click', ()=>{
   const id = el.smeltAllBtn.getAttribute('data-smelt') || 'bar_copper';
-  if (!canSmelt(state, id)){ pushSmithLog(`Not enough ingredients to Smelt All.`); return; }
+  if (!canSmelt(state, id)){ 
+    pushSmithLog(`Not enough ingredients to Smelt All.`); 
+    return; 
+  }
   state.__smeltAll = id;
   if (!state.action && startSmelt(state, id)){
     const name = SMELT_RECIPES[id]?.name || id;
@@ -1127,7 +1112,7 @@ el.makeUpgradeBarBtn?.addEventListener('click', ()=>{
   makeUpgradeBars(1); render(); saveState(state);
 });
 el.makeUpgradeBarAllBtn?.addEventListener('click', ()=>{
-  const bars = state.inventory['copper_bar']||0;
+  const bars = state.inventory['bar_copper']||0;
   makeUpgradeBars(Math.floor(bars/3)); render(); saveState(state);
 });
 
@@ -1156,18 +1141,23 @@ el.applyUpgradeBtn?.addEventListener('click', ()=>{
   render(); // ensures counts/select re-populate
 });
 
-// Forging (event delegation)
+// Forging listener
 el.forgeList?.addEventListener('click', (e)=>{
   const btn = e.target.closest('button[data-forge]'); if(!btn) return;
-  const id = btn.getAttribute('data-forge');
+  const id = btn.dataset.forge;
+  const r  = FORGE_RECIPES.find(x=>x.id===id);
+  if (!r) return;
+
+  if (!canForge(state, id)){
+    if (typeof pushSmithLog === 'function') pushSmithLog('Missing materials.');
+    return;
+  }
   if (!state.action && startForge(state, id)){
-    const rec = FORGE_RECIPES.find(r=>r.id===id);
-    el.smithLabel && (el.smithLabel.textContent = `Forging ${rec?.name || id}…`);
+    if (el.smithLabel) el.smithLabel.textContent = `Forging ${r.name || r.id}…`;
+    if (typeof pushSmithLog === 'function') pushSmithLog(`Started forging ${r.name || r.id}…`);
+    saveState(state);
   }
 });
-
-
-document.addEventListener('keydown', (e)=>{ if(e.key.toLowerCase()==='c') el.chopBtn?.click(); });
 
 el.fightBtn?.addEventListener('click', ()=>{
   if(state.combat) return;
@@ -1202,15 +1192,6 @@ el.fleeBtn?.addEventListener('click', ()=>{
 });
 
 el.trainingSelect?.addEventListener('change', ()=>{ state.trainingStyle = el.trainingSelect.value; renderCharacterPanel(); saveState(state); });
-
-el.shop?.addEventListener('click', (e)=>{
-  const btn=e.target.closest('button[data-buy]'); if(!btn) return;
-  const id=btn.getAttribute('data-buy'); const price=+btn.getAttribute('data-price');
-  if(state.gold<price){ pushLog(`Not enough gold for ${ITEMS[id].name}.`); return; }
-  state.gold-=price; addItem(state,id,1);
-  pushLog(`Purchased ${ITEMS[id].name} for <span class="gold">${price}g</span>.`);
-  render(); saveState(state);
-});
 
 el.cookList?.addEventListener('click', (e)=>{
   const btn=e.target.closest('button[data-cook]'); if(!btn) return;
@@ -1286,9 +1267,6 @@ el.resetBtn?.addEventListener('click', ()=>{
   }
 });
 
-// Logs
-function pushFishLog(msg){ const p=document.createElement('p'); p.innerHTML = `[${new Date().toLocaleTimeString()}] `+msg; el.fishLog.appendChild(p); el.fishLog.scrollTop=el.fishLog.scrollHeight; }
-
 // Tick: actions + regen
 let lastTs = performance.now();
 let regenCarry = 0;
@@ -1323,6 +1301,12 @@ function tick(){
       case 'chop':  updateBar(el.actionBar, el.actionLabel, 'Chopping', pct); break;
       case 'fish':  updateBar(el.fishBar,   el.fishLabel,   'Fishing',  pct); break;
       case 'mine':  updateBar(el.mineBar,   el.mineLabel,   'Mining',   pct); break;
+      case 'craft': {
+        const name = (CRAFT_RECIPES?.[act.key]?.name) || act.key;
+        if (el.craftBar)   el.craftBar.style.width = (pct*100).toFixed(2) + '%';
+        if (el.craftLabel) el.craftLabel.textContent = pct < 1 ? `Crafting ${name}…` : `Finished ${name}!`;
+        break;
+      }
       case 'smith': {
         if (el.smithBar) el.smithBar.style.width = (pct*100).toFixed(2) + '%';
         if (el.smithLabel){
@@ -1346,6 +1330,25 @@ function tick(){
         if (tree) appendLog(el.log, `You chopped ${tree.name} (+1 ${ITEMS[tree.drop].name}, +${tree.xp} WC XP)`);
         resetBar(el.actionBar, el.actionLabel);
         state.action = null;
+        render(); saveState(state);
+        return requestAnimationFrame(tick);
+      }
+
+      if (act.type === 'craft'){
+        const name = (CRAFT_RECIPES?.[act.key]?.name) || act.key;
+        const out = finishOneCraft(state);
+        if (out) pushCraftLog(`Made ${out.name}.`);
+      
+        state.action = null;
+      
+        const left = (act.queue||1) - 1;
+        if (left > 0 && canCraft(state, act.key, 1)){
+          startCraft(state, act.key, left);
+        } else if (el.craftBar){
+          el.craftBar.style.width = '0%';
+          el.craftLabel.textContent = 'Idle';
+        }
+      
         render(); saveState(state);
         return requestAnimationFrame(tick);
       }
@@ -1397,7 +1400,6 @@ function tick(){
           }
         }
 
-        // Free the action BEFORE possibly starting the next one
         state.action = null;
 
         // Continue "Smelt All" if queued
@@ -1446,9 +1448,6 @@ function tick(){
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
-
-
-
 
 populate();
 renderForgeList();
