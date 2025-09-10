@@ -17,6 +17,22 @@
     </div>
   </header>
 
+  <script>
+    window.addEventListener('securitypolicyviolation', e => {
+      console.error('[CSP]', {
+        directive: e.violatedDirective,
+        blockedURI: e.blockedURI,
+        sourceFile: e.sourceFile,
+        lineNumber: e.lineNumber,
+        columnNumber: e.columnNumber,
+        sample: e.sample
+      });
+    });
+    window.addEventListener('error', e => console.error('[window.onerror]', e.message, e.error));
+    window.addEventListener('unhandledrejection', e => console.error('[unhandledrejection]', e.reason));
+  </script>
+  
+
   <div class="wrap">
     <div class="grid">
       <!-- LEFT: Skills + Inventory -->
@@ -30,7 +46,7 @@
         <!-- Compact skills grid (single source of truth) -->
         <div class="skills-grid">
           <div class="skill-tile" id="tile-wc">
-            <div class="tile-header">🪓 <span>Forrestry</span></div>
+            <div class="tile-header">🪓 <span>Forestry</span></div>
             <div class="tile-level">Lvl <b id="wcLevelMini">1</b></div>
             <div class="progress xs" title=""><div class="bar" id="wcBarMini"></div></div>
           </div>
@@ -90,7 +106,7 @@
           <button class="tab" data-tab="cooking">🍳 Cooking</button>
           <button class="tab" data-tab="mining">⛏️ Mining</button>
           <button class="tab" data-tab="smithing">⚒️ Smithing</button>
-          <button class="tab" data-tab="combat">⚔️ Combat Areas</button>
+          <button class="tab" data-tab="combat">⚔️ Combat</button>
         </div>
 
         <!-- Forests panel -->
@@ -107,7 +123,7 @@
           </div>
             <div class="card" style="padding:10px;">
               <h2 style="margin-bottom:6px;">📜 Log</h2>
-              <div id="log" class="log" aria-live="polite"></div>
+              <div id="wcLog" class="log" aria-live="polite"></div>
             </div>
         </div>
 
@@ -151,7 +167,6 @@
             Drag a <b>raw food</b> from your inventory onto the fire and hold it.
             Release when the bar is in the <b>golden zone</b>. Too short = raw. Too long = burnt.
           </p>
-
           <div id="cookFire" class="cook-fire" aria-dropeffect="move">
             <div class="cook-bar">
               <div class="perfect-zone" id="cookPerfectZone"></div>
@@ -160,10 +175,11 @@
             <div class="fire-emoji">🔥</div>
             <div class="hint" id="cookHint">Drop raw food here</div>
           </div>
-
-          <div id="cookLog" class="log" aria-live="polite"></div>
+          <div class="card" style="padding:10px; margin-top:10px;">
+            <h2 style="margin-bottom:6px;">📜 Log</h2>
+            <div id="cookLog" class="log" aria-live="polite"></div>
+          </div>
         </div>
-
 
         <!-- Mining panel -->
         <div class="tabpanel hidden" id="tab-mining">
@@ -351,8 +367,12 @@
       Notice: Game is in very early development.
     </footer>
   </div>
+  
   <div id="popover" class="popover hidden" role="menu"></div>
   <div id="tooltip" class="tooltip hidden"></div>
-  <script type="module" src="main.js"></script>
+  
+  <script type="module">
+    import './ui/app.js';
+  </script>
 </body>
 </html>

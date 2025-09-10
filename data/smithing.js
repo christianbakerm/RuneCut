@@ -1,13 +1,6 @@
 // data/smithing.js
-
-// Smelting: key is the OUTPUT id. Supports multi-inputs.
-// Example scales when you add more metals (tin, bronze, etc.)
 export const SMELT_RECIPES = {
-    bar_copper: { name:'Copper Bar', time:2000, xp:6, inputs:[{ id:'ore_copper', qty:1 }] }
-  
-    // Future examples (uncomment when you add items):
-    // bar_tin:    { name:'Tin Bar',    time:2000, xp:8,  inputs:[ { id:'ore_tin', qty:1 } ] },
-    // bar_bronze: { name:'Bronze Bar', time:3200, xp:16, inputs:[ { id:'ore_copper', qty:1 }, { id:'ore_tin', qty:1 } ] },
+    bar_copper: { name:'Copper Bar', time:2000, xp:6, inputs:[{ id:'ore_copper', qty:1 }] }  
   };
   
   // Forging: uses bars by type via barId (e.g., 'bar_copper') and is timed.

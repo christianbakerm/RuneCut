@@ -7,22 +7,29 @@ export const ITEMS = {
     // Materials
     wood_handle: { id:'wood_handle', name:'Wood Handle', type:'material', sell:2, icon:'🪵' },
   
-    // Weapons & Armor
-    bent_dagger:   { id:'bent_dagger', name:'Bent Dagger',  type:'equipment', slot:'weapon', atk:1, str:0, icon:'🔪' },
-    rusty_sword:   { id:'rusty_sword', name:'Rusty Sword',  type:'equipment', slot:'weapon', atk:3, str:1, icon:'🗡️' },
-    wooden_shield: { id:'wooden_shield', name:'Wooden Shield', type:'equipment', slot:'shield', def:3, icon:'🛡️' },
-  
     // Tools
     axe_copper: { id:'axe_copper', name:'Copper Axe', type:'equipment', slot:'axe', speed:1.25, img:'assets/items/bronze-axe.png' },
     pick_copper: { id:'pick_copper', name:'Copper Pick', type:'equipment', slot:'pick', speed:1.25, img:'assets/items/bronze-axe.png' },
 
     // Fishing resources
-    raw_shrimps: { id:'raw_shrimps', name:'Raw Shrimps', type:'resource', sell:1, icon:'🦐' },
-    raw_trout:   { id:'raw_trout',   name:'Raw Trout',   type:'resource', sell:2, icon:'🐟' },
+    raw_shrimps: { id:'raw_shrimps', name:'Raw Shrimp',  type:'resource', sell:1, img:'assets/food/raw_shrimp.png' },
+    raw_trout:   { id:'raw_trout',   name:'Raw Trout',   type:'resource', sell:2, img:'assets/food/raw_trout.png' },
+    raw_eel:     { id:'raw_eel',     name:'Raw Eel',     type:'resource', sell:8, img:'assets/food/raw_eel.png' },
+    raw_salmon:  { id:'raw_salmon',  name:'Raw Salmon',  type:'resource', sell:15, img:'assets/food/raw_salmon.png' },
+    raw_halibut: { id:'raw_halibut', name:'Raw Halibut', type:'resource', sell:29, img:'assets/food/raw_halibut.png' },
+    raw_manta_ray: { id:'raw_manta_ray', name:'Raw Manta Ray', type:'resource', sell:40,  img:'assets/food/raw_manta-ray.png' },
+    raw_angler: { id:'raw_angler', name:'Raw Angler', type:'resource', sell:65, img:'assets/food/raw_angler.png' },
+    raw_dolphin: { id:'raw_dolphin', name:'Raw Dolphin', type:'resource', sell:90, img:'assets/food/raw_dolphin.png' },
 
     // Cooked foods
-    shrimps: { id:'shrimps', name:'Shrimps', type:'food', heal:5,  sell:3, icon:'🍤' },
-    trout:   { id:'trout',   name:'Trout',   type:'food', heal:12, sell:6, icon:'🍣' },
+    shrimps: { id:'shrimps', name:'Shrimp',   type:'food', heal:5,  sell:2,  img:'assets/food/shrimp.png' },
+    trout:   { id:'trout',   name:'Trout',    type:'food', heal:12, sell:3,  img:'assets/food/trout.png' },
+    eel:     { id:'eel',     name:'Eel',      type:'food', heal:20, sell:10, img:'assets/food/eel.png' },
+    salmon:  { id:'salmon',  name:'Salmon',   type:'food', heal:30, sell:19, img:'assets/food/salmon.png' },
+    halibut: { id:'halibut', name:'Halibut',  type:'food', heal:45, sell:36, img:'assets/food/halibut.png' },
+    manta_ray:     { id:'manta_ray',     name:'Manta Ray',     type:'food',     heal:36, sell:52, img:'assets/food/manta-ray.png' },
+    angler:     { id:'angler',     name:'Angler',     type:'food',     heal:44, sell:82, img:'assets/food/angler.png' },
+    dolphin:     { id:'dolphin',     name:'Dolphin',     type:'food',     heal:55, sell:115, img:'assets/food/dolphin.png' },
 
     // Ores
     ore_copper: { id:'ore_copper', name:'Copper Ore', type:'resource', sell:1, icon:'🪨' },
