@@ -5,7 +5,7 @@ import { FORGE_RECIPES, SMELT_RECIPES } from '../data/smithing.js';
 import {
   canSmelt, startSmelt, finishSmelt, maxSmeltable,
   canForge, startForge, finishForge,
-  listUpgradable, applyUpgrade, UPGRADE_BAR_ID
+  listUpgradable, applyUpgrade, upgradeBarIdForMetal
 } from '../systems/smithing.js';
 import { pushSmithLog } from './logs.js';
 import { renderInventory } from './inventory.js';
@@ -64,7 +64,16 @@ function updateCounts(){
   el.copperBarCount && (el.copperBarCount.textContent = state.inventory['bar_copper'] || 0);
   el.bronzeBarCount && (el.bronzeBarCount.textContent = state.inventory['bar_bronze'] || 0);
   el.ironBarCount   && (el.ironBarCount.textContent   = state.inventory['bar_iron']   || 0);
-  el.upgradeBarCount&& (el.upgradeBarCount.textContent= state.inventory[UPGRADE_BAR_ID] || 0);
+  function countUpgradeBarsForUI(){
+    const sel = el.upgradeFilter?.value || 'all';
+    if (sel === 'all'){
+      const ids = ['copper_upgrade_bar','bronze_upgrade_bar','iron_upgrade_bar'];
+      return ids.reduce((n,id)=> n + (state.inventory[id]||0), 0);
+    }
+    const barId = upgradeBarIdForMetal(sel);
+    return state.inventory[barId] || 0;
+  }
+  el.upgradeBarCount && (el.upgradeBarCount.textContent = countUpgradeBarsForUI());
 }
 
 function reqStrForge(rec){
@@ -318,7 +327,8 @@ on(document, 'click', '#applyUpgradeBtn', ()=>{
   if (!res) return;
 
   const name = prettyName(res.base);
-  pushSmithLog(`Upgraded ${name}: ${qStr(res.oldQ)} → ${qStr(res.newQ)} (+${res.xp} Smithing xp) (−1 ${prettyName(UPGRADE_BAR_ID)})`);
+  const barUsed = prettyName(res.barId);
+  pushSmithLog(`Upgraded ${name}: ${qStr(res.oldQ)} → ${qStr(res.newQ)} (+${res.xp} Smithing xp) (−1 ${barUsed})`);
 
   saveState(state);
   updateCounts();

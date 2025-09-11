@@ -7,8 +7,18 @@ const XP_TABLE = buildXpTable();
 const speedFromLevel = lvl => 1 + 0.02*(lvl-1);
 const clampMs = (ms)=> Math.max(350, ms);
 
-// If your data uses a different id, change here:
-export const UPGRADE_BAR_ID = 'copper_upgrade_bar';
+export const UPGRADE_METALS = ['copper','bronze','iron'];
+
+export const upgradeBarIdForMetal = (metal='copper') => `${metal}_upgrade_bar`;
+
+export const metalFromBase = (baseId='') => {
+  const m = String(baseId).split('_')[0];
+  return UPGRADE_METALS.includes(m) ? m : null;
+};
+export const upgradeBarIdForBase = (baseId='') => {
+  const m = metalFromBase(baseId);
+  return m ? upgradeBarIdForMetal(m) : null;
+};
 
 // Quality roll for equipment creation
 export function rollQuality(smithLvl){
@@ -147,7 +157,9 @@ function parseId(id=''){
   return { base, q };
 }
 // Currently limit upgrades to copper gear (matches existing upgrade-bar type)
-function isCopperGear(baseId){ return baseId?.startsWith('copper_'); }
+function isUpgradeableGear(baseId){
+  return !!metalFromBase(baseId); // any listed metal prefix (copper/bronze/iron)
+}
 
 function rollUpgradeDelta(smithLvl){
   // ~10–25%, slightly higher with Smithing
@@ -165,7 +177,7 @@ export function listUpgradable(state, ITEMS){
     if (!qty) continue;
     const { base, q } = parseId(id);
     if (!q) continue;
-    if (!isCopperGear(base)) continue;
+    if (!isUpgradeableGear(base)) continue;
     if (q >= 100) continue;
     const name = ITEMS?.[base]?.name || base.replace(/_/g,' ');
     out.push({ where:'inv', token:`inv|${id}`, base, q, name, qty });
@@ -175,7 +187,7 @@ export function listUpgradable(state, ITEMS){
     if (!id) continue;
     const { base, q } = parseId(id);
     if (!q) continue;
-    if (!isCopperGear(base)) continue;
+    if (!isUpgradeableGear(base)) continue;
     if (q >= 100) continue;
     const name = ITEMS?.[base]?.name || base.replace(/_/g,' ');
     out.push({ where:'equip', token:`equip|${slot}`, base, q, name, slot });
@@ -186,9 +198,6 @@ export function listUpgradable(state, ITEMS){
 }
 
 export function applyUpgrade(state, token){
-  // require bar
-  if ((state.inventory[UPGRADE_BAR_ID]||0) <= 0) return null;
-
   const smithLvl = levelFromXp(state.smithXp||0, XP_TABLE);
   const delta = rollUpgradeDelta(smithLvl);
   const UPGRADE_XP = 5;
@@ -196,9 +205,17 @@ export function applyUpgrade(state, token){
   function upgradeId(oldId){
     const { base, q } = parseId(oldId);
     if (!q) return null;
-    if (!isCopperGear(base)) return null;
+    if (!isUpgradeableGear(base)) return null;
     const newQ = Math.min(100, q + delta);
     return { base, oldQ:q, newQ, newId: `${base}@${newQ}` };
+  }
+
+  function spendBarForBase(base){
+    const barId = upgradeBarIdForBase(base);
+    if (!barId) return null;
+    if ((state.inventory[barId]||0) <= 0) return null;
+    removeItem(state, barId, 1);
+    return barId;
   }
 
   let result = null;
@@ -207,20 +224,21 @@ export function applyUpgrade(state, token){
     const oldId = token.slice(4);
     if ((state.inventory[oldId]||0) <= 0) return null;
     const u = upgradeId(oldId); if(!u) return null;
-    removeItem(state, UPGRADE_BAR_ID, 1);
+    const barId = spendBarForBase(u.base); if (!barId) return null;
     removeItem(state, oldId, 1);
     addItem(state, u.newId, 1);
     state.smithXp = (state.smithXp||0) + UPGRADE_XP;
-    result = { where:'inv', base:u.base, oldQ:u.oldQ, newQ:u.newQ, xp: UPGRADE_XP };
+    result = { where:'inv', base:u.base, oldQ:u.oldQ, newQ:u.newQ, xp: UPGRADE_XP, barId };
   } else if (token.startsWith('equip|')){
     const slot = token.slice(6);
     const oldId = state.equipment?.[slot]; if(!oldId) return null;
     const u = upgradeId(oldId); if(!u) return null;
-    removeItem(state, UPGRADE_BAR_ID, 1);
+    const barId = spendBarForBase(u.base); if (!barId) return null;
     state.equipment[slot] = u.newId;
     state.smithXp = (state.smithXp||0) + UPGRADE_XP;
-    result = { where:'equip', slot, base:u.base, oldQ:u.oldQ, newQ:u.newQ, xp: UPGRADE_XP };
+    result = { where:'equip', slot, base:u.base, oldQ:u.oldQ, newQ:u.newQ, xp: UPGRADE_XP, barId };
   }
 
   return result;
 }
+
