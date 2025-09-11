@@ -14,7 +14,7 @@
   --shadow: 0 10px 30px rgba(0,0,0,.35);
   --progress-h: 20px;
   --progress-h-xs: 8px;
-  --progress-h-hp: 20px;
+  --progress-h-hp: 40px;
   --cook-bar-h: 20px;
 }
 * { box-sizing: border-box; }
@@ -82,7 +82,7 @@ button:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 /* HP bars */
 .progress.hp { height: var(--progress-h-hp); border-color:#3b2141; background:#160b1b; }
 .progress.hp .bar { background: linear-gradient(90deg, #ff6b6b, #ffb3b3); }
-.progress.hp.enemy { height: var(--progress-h-hp); border-color:#34413b; background:#0c1610; }
+.progress.hp.enemy { height: var(--progress-h-hp); border-color:#34413b; background:#0c1610; overflow: hidden}
 .progress.hp.enemy .bar { background: linear-gradient(90deg, #6bff8e, #b3ffd0); }
 
 .combat-hud { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
@@ -616,3 +616,74 @@ img.icon-img.tint-iron {
 
 /* Optional: dim the active card while forging */
 .forge-card.busy { filter: saturate(.9) brightness(.98); }
+
+/* Bigger, bolder, readable anywhere */
+.floating-dmg{
+  position: absolute;
+  left: 50%;
+  top: -10px;
+  transform: translateX(-50%) translateY(0) scale(.85);
+  opacity: 0;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: .2px;
+  pointer-events: none;
+  text-shadow:
+    0 1px 0 rgba(0,0,0,.55),
+    0 2px 6px rgba(0,0,0,.35);
+  animation: dmgPopSlow 1.3s cubic-bezier(.2,.9,.2,1) forwards;
+}
+
+.floating-dmg.dealt{
+  color: #87f4ff;
+  text-shadow:
+    0 1px 0 rgba(0,0,0,.6),
+    0 0 12px rgba(135,244,255,.35);
+}
+.floating-dmg.taken{
+  color: #ff6b6b;
+  text-shadow:
+    0 1px 0 rgba(0,0,0,.6),
+    0 0 12px rgba(255,107,107,.35);
+}
+.floating-dmg.crit{
+  color: #ffd166;
+  text-shadow:
+    0 1px 0 rgba(0,0,0,.65),
+    0 0 14px rgba(255,209,102,.45);
+  animation-duration: 1.5s;
+  transform-origin: 50% 60%;
+}
+.floating-dmg.miss{ color:#a9b0d3; font-size:20px; opacity:.9; }
+.floating-dmg.block{ color:#45d483; font-size:20px; opacity:.95; }
+.floating-dmg.miss{ color:#a9b0d3; }
+.floating-dmg.block{ color:#45d483; }
+
+@keyframes dmgPopSlow{
+  0%   { opacity: 0; transform: translateX(-50%) translateY(8px)  scale(.6); }
+  12%  { opacity: 1; transform: translateX(-50%) translateY(0px)  scale(1.2); }
+  25%  {            transform: translateX(-50%) translateY(-6px)  scale(1.0); }
+  70%  { opacity: 1; transform: translateX(-50%) translateY(-22px) scale(1.0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(1.0); }
+}
+
+.floating-dmg.taken.slam{
+  animation: dmgSlamSlow 1.2s cubic-bezier(.2,.9,.2,1) forwards;
+}
+@keyframes dmgSlamSlow{
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(.6); }
+  18%  { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1.28); }
+  45%  {            transform: translateX(-50%) translateY(-8px)  scale(1.0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-32px) scale(1.0); }
+}
+
+#playerHpVal,
+#monHpVal {
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.08);
+  padding: 2px 6px;
+  border-radius: 8px;
+}

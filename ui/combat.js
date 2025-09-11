@@ -40,15 +40,32 @@ function pulse(el, cls, ms=300){
   el.classList.add(cls);
   setTimeout(()=>el.classList.remove(cls), ms);
 }
-function floatText(anchorBarEl, text){
-  if(!anchorBarEl) return;
-  const host = anchorBarEl.parentElement || anchorBarEl;
-  const s = document.createElement('span');
-  s.className = 'floating-dmg';
-  s.textContent = text;
-  host.appendChild(s);
-  s.addEventListener('animationend', ()=> s.remove(), { once:true });
+
+// Big floating numbers (relies on CSS for .floating-dmg, .dealt, .taken, .crit, .miss, .block)
+function bubbleDamage(anchorBarEl, amount, kind='dealt', {crit=false, slam=false, text=null} = {}){
+  if (!anchorBarEl) return;
+
+  // Prefer the element *outside* the .progress pill to avoid clipping.
+  const progress = anchorBarEl.closest('.progress');
+  let host = progress?.parentElement || anchorBarEl.parentElement || anchorBarEl;
+
+  // Ensure the host can position children absolutely and isn't clipped.
+  const cs = host ? getComputedStyle(host) : null;
+  if (host && cs && cs.position === 'static') host.style.position = 'relative';
+  // If the host itself clips, try one more level up.
+  if (host && cs && (cs.overflow === 'hidden' || cs.overflowX === 'hidden' || cs.overflowY === 'hidden')) {
+    host = host.parentElement || host;
+    const cs2 = getComputedStyle(host);
+    if (cs2.position === 'static') host.style.position = 'relative';
+  }
+
+  const d = document.createElement('div');
+  d.className = `floating-dmg ${kind}${crit ? ' crit' : ''}${slam ? ' slam' : ''}`;
+  d.textContent = text ?? `-${amount}`;
+  host.appendChild(d);
+  d.addEventListener('animationend', ()=> d.remove(), { once:true });
 }
+
 
 function currentMonster(){
   const id = state.selectedMonsterId || el.monsterSelect?.value;
@@ -155,10 +172,14 @@ el.fightBtn?.addEventListener('click', ()=>{
   renderEquipment();
 });
 
+// --- log parsing helpers ---
 function parseDamage(line){
   const m = /for\s+(\d+)/i.exec(line||'');
   return m ? parseInt(m[1],10) : null;
 }
+const hasCrit = (s='') => /\bcrit/i.test(s) || /\bcritical\b/i.test(s);
+const isMissLine = (s='') => /\bmiss\b/i.test(s);
+const isBlockLine = (s='') => /\bblock(ed)?\b/i.test(s);
 
 el.attackBtn?.addEventListener('click', ()=>{
   if (!state.combat) return;
@@ -169,19 +190,37 @@ el.attackBtn?.addEventListener('click', ()=>{
   logs.forEach(line => pushCombatLog(line));
 
   // --- micro FX based on log lines ---
-  const youHitLine = logs.find(l => l.startsWith('You hit '));
-  const monHitLine = logs.find(l => /\bhits you for\b/.test(l));
+  const youHitLine  = logs.find(l => l.startsWith('You hit '));
+  const monHitLine  = logs.find(l => /\bhits you for\b/i.test(l));
+  const youMissLine = logs.find(l => /\byou miss\b/i.test(l));
+  const monMissLine = logs.find(l => /misses you\b/i.test(l));
+  const youBlockLn  = logs.find(l => /\byou block\b/i.test(l));      // player blocked enemy
+  const monBlockLn  = logs.find(l => /\bblocks your\b/i.test(l));    // enemy blocked player
+
   const dmgMon = parseDamage(youHitLine);
   const dmgYou = parseDamage(monHitLine);
 
+  // Enemy takes damage from you
   if (dmgMon != null){
+    const crit = hasCrit(youHitLine);
     pulse(el.monHpBar, 'flash-dmg', 350);
     pulse(el.monImg, 'shake', 250);
-    floatText(el.monHpBar, `-${dmgMon}`);
+    bubbleDamage(el.monHpBar, dmgMon, 'dealt', { crit });
+  } else if (youMissLine){
+    bubbleDamage(el.monHpBar, 0, 'miss', { text:'Miss' });
+  } else if (monBlockLn){
+    bubbleDamage(el.monHpBar, 0, 'block', { text:'Block' });
   }
+
+  // You take damage from enemy
   if (dmgYou != null){
+    const crit = hasCrit(monHitLine);
     pulse(el.playerHpBar, 'flash-dmg', 350);
-    floatText(el.playerHpBar, `-${dmgYou}`);
+    bubbleDamage(el.playerHpBar, dmgYou, 'taken', { crit, slam:true });
+  } else if (monMissLine){
+    bubbleDamage(el.playerHpBar, 0, 'miss', { text:'Miss' });
+  } else if (youBlockLn){
+    bubbleDamage(el.playerHpBar, 0, 'block', { text:'Block' });
   }
 
   // Apply cooldown immediately
