@@ -8,8 +8,8 @@ export const ITEMS = {
     wood_handle: { id:'wood_handle', name:'Wood Handle', type:'material', sell:2, icon:'🪵' },
   
     // Tools
-    axe_copper: { id:'axe_copper', name:'Copper Axe', type:'equipment', slot:'axe', speed:1.25, img:'assets/items/bronze-axe.png' },
-    pick_copper: { id:'pick_copper', name:'Copper Pick', type:'equipment', slot:'pick', speed:1.25, img:'assets/items/bronze-axe.png' },
+    axe_copper: { id:'axe_copper', name:'Copper Axe', type:'equipment', slot:'axe', speed:1.25, img:'assets/equipment/bronze-axe.png' },
+    pick_copper: { id:'pick_copper', name:'Copper Pick', type:'equipment', slot:'pick', speed:1.25, img:'assets/equipment/bronze-axe.png' },
 
     // Fishing resources
     raw_shrimps: { id:'raw_shrimps', name:'Raw Shrimp',  type:'resource', sell:1, img:'assets/food/raw_shrimp.png' },
@@ -38,19 +38,41 @@ export const ITEMS = {
 
     // Smithing resource
     bar_copper: { id:'bar_copper', name:'Copper Bar',  type:'resource', sell:3, icon:'🔶' },
+    bar_bronze: { id:'bar_bronze', name:'Bronze Bar', type:'resource', sell:5, icon:'🟫' },
+    bar_iron:   { id:'bar_iron',   name:'Iron Bar',   type:'resource', sell:8, icon:'⬜' },
     copper_upgrade_bar: { id:'copper_upgrade_bar', name:'Copper Upgrade Bar', type:'material', sell:8, icon:'➕' },
 
-    // Copper armor (base stats @ 100% quality)
-    copper_helm:   { id:'copper_helm',   name:'Copper Helm',   type:'equipment', slot:'head',   def:3, sell:6, img:'assets/items/bronze-helm.png' },
-    copper_plate:  { id:'copper_plate',  name:'Copper Plate',  type:'equipment', slot:'body',   def:8, sell:18, img:'assets/items/bronze-plate.png' },
-    copper_legs:   { id:'copper_legs',   name:'Copper Greaves',type:'equipment', slot:'legs',   def:5, sell:12, img:'assets/items/bronze-legs.png' },
-    copper_gloves: { id:'copper_gloves', name:'Copper Gloves', type:'equipment', slot:'gloves', def:2, sell:3, img:'assets/items/bronze-gloves.png' },
-    copper_boots:  { id:'copper_boots',  name:'Copper Boots',  type:'equipment', slot:'boots',  def:2, sell:3, img:'assets/items/bronze-boots.png' },
-    copper_shield: { id:'copper_shield', name:'Copper Shield', type:'equipment', slot:'shield', def:7, sell:15, img:'assets/items/bronze-shield.png' },
-    // Copper weapons (base stats at 100% quality)
-    copper_dagger: { id:'copper_dagger', name:'Copper Dagger', type:'equipment', slot:'weapon', atk:6,  str:2,  sell:10, img:'assets/items/bronze-dagger.png' },
-    copper_sword:  { id:'copper_sword',  name:'Copper sword',  type:'equipment', slot:'weapon', atk:9,  str:5,  sell:18, img:'assets/items/bronze-sword.png' },
-    copper_hammer: { id:'copper_hammer',   name:'Copper hammer',   type:'equipment', slot:'weapon', atk:4,  str:10, sell:18, img:'assets/items/bronze-hammer.png' },
+    // --- Copper ---
+    copper_helm:   { id:'copper_helm',   name:'Copper Helm',   type:'equipment', slot:'head',   def:3, sell:6, img:'assets/equipment/bronze-helm.png' },
+    copper_plate:  { id:'copper_plate',  name:'Copper Plate',  type:'equipment', slot:'body',   def:8, sell:18, img:'assets/equipment/bronze-plate.png' },
+    copper_legs:   { id:'copper_legs',   name:'Copper Greaves',type:'equipment', slot:'legs',   def:5, sell:12, img:'assets/equipment/bronze-legs.png' },
+    copper_gloves: { id:'copper_gloves', name:'Copper Gloves', type:'equipment', slot:'gloves', def:2, sell:3, img:'assets/equipment/bronze-gloves.png' },
+    copper_boots:  { id:'copper_boots',  name:'Copper Boots',  type:'equipment', slot:'boots',  def:2, sell:3, img:'assets/equipment/bronze-boots.png' },
+    copper_shield: { id:'copper_shield', name:'Copper Shield', type:'equipment', slot:'shield', def:7, sell:15, img:'assets/equipment/bronze-shield.png' },
+    copper_dagger: { id:'copper_dagger', name:'Copper Dagger', type:'equipment', slot:'weapon', atk:6,  str:2,  sell:10, img:'assets/equipment/bronze-dagger.png' },
+    copper_sword:  { id:'copper_sword',  name:'Copper sword',  type:'equipment', slot:'weapon', atk:9,  str:5,  sell:18, img:'assets/equipment/bronze-sword.png' },
+    copper_hammer: { id:'copper_hammer',   name:'Copper hammer',   type:'equipment', slot:'weapon', atk:4,  str:10, sell:18, img:'assets/equipment/bronze-hammer.png' },
+    // --- Bronze ---
+    bronze_helm:   { id:'bronze_helm',   name:'Bronze Helm',   type:'equipment', slot:'head',   def:5,  sell:12, img:'assets/equipment/bronze-helm.png',   tint:'bronze' },
+    bronze_plate:  { id:'bronze_plate',  name:'Bronze Plate',  type:'equipment', slot:'body',   def:12, sell:28, img:'assets/equipment/bronze-plate.png',  tint:'bronze' },
+    bronze_legs:   { id:'bronze_legs',   name:'Bronze Greaves',type:'equipment', slot:'legs',   def:8,  sell:20, img:'assets/equipment/bronze-legs.png',   tint:'bronze' },
+    bronze_gloves: { id:'bronze_gloves', name:'Bronze Gloves', type:'equipment', slot:'gloves', def:3,  sell:6,  img:'assets/equipment/bronze-gloves.png', tint:'bronze' },
+    bronze_boots:  { id:'bronze_boots',  name:'Bronze Boots',  type:'equipment', slot:'boots',  def:3,  sell:6,  img:'assets/equipment/bronze-boots.png',  tint:'bronze' },
+    bronze_shield: { id:'bronze_shield', name:'Bronze Shield', type:'equipment', slot:'shield', def:10, sell:24, img:'assets/equipment/bronze-shield.png', tint:'bronze' },
+    bronze_dagger: { id:'bronze_dagger', name:'Bronze Dagger', type:'equipment', slot:'weapon', atk:9,  str:4,  sell:16, img:'assets/equipment/bronze-dagger.png', tint:'bronze' },
+    bronze_sword:  { id:'bronze_sword',  name:'Bronze Sword',  type:'equipment', slot:'weapon', atk:12, str:9,  sell:28, img:'assets/equipment/bronze-sword.png',  tint:'bronze' },
+    bronze_hammer: { id:'bronze_hammer', name:'Bronze Hammer', type:'equipment', slot:'weapon', atk:8,  str:16, sell:28, img:'assets/equipment/bronze-hammer.png',tint:'bronze' },
+    // --- Iron ---
+    iron_helm:   { id:'iron_helm',   name:'Iron Helm',   type:'equipment', slot:'head',   def:8,  sell:22, img:'assets/equipment/bronze-helm.png',   tint:'iron' },
+    iron_plate:  { id:'iron_plate',  name:'Iron Plate',  type:'equipment', slot:'body',   def:18, sell:42, img:'assets/equipment/bronze-plate.png',  tint:'iron' },
+    iron_legs:   { id:'iron_legs',   name:'Iron Greaves',type:'equipment', slot:'legs',   def:12, sell:32, img:'assets/equipment/bronze-legs.png',   tint:'iron' },
+    iron_gloves: { id:'iron_gloves', name:'Iron Gloves', type:'equipment', slot:'gloves', def:5,  sell:12, img:'assets/equipment/bronze-gloves.png', tint:'iron' },
+    iron_boots:  { id:'iron_boots',  name:'Iron Boots',  type:'equipment', slot:'boots',  def:5,  sell:12, img:'assets/equipment/bronze-boots.png',  tint:'iron' },
+    iron_shield: { id:'iron_shield', name:'Iron Shield', type:'equipment', slot:'shield', def:15, sell:38, img:'assets/equipment/bronze-shield.png', tint:'iron' },
+    iron_dagger: { id:'iron_dagger', name:'Iron Dagger', type:'equipment', slot:'weapon', atk:13, str:6,  sell:24, img:'assets/equipment/bronze-dagger.png', tint:'iron' },
+    iron_sword:  { id:'iron_sword',  name:'Iron Sword',  type:'equipment', slot:'weapon', atk:16, str:12,  sell:40, img:'assets/equipment/bronze-sword.png',  tint:'iron' },
+    iron_hammer: { id:'iron_hammer', name:'Iron Hammer', type:'equipment', slot:'weapon', atk:11,  str:25, sell:40, img:'assets/equipment/bronze-hammer.png',tint:'iron' },
+
 
     // Ingredients
     briar_oil:     { id:'briar_oil', name:'Briar Oil', type:'reagent', sell:5,  icon:'🛢️' },

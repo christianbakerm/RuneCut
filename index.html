@@ -207,10 +207,19 @@
           <div class="card" style="padding:10px; margin-bottom:10px;">
             <h3 style="margin:0 0 8px;">🔥 Smelting</h3>
             <div class="row" style="gap:10px; margin-bottom:8px;">
+              <label class="muted" for="smeltSelect">Bar</label>
+              <select id="smeltSelect"></select>
+              <button id="smeltOneBtn"  class="btn-primary">Smelt 1</button>
+              <button id="smeltAllBtn"  class="btn-primary">Smelt All</button>
+            </div>
+          
+            <div class="row" style="gap:10px; margin-bottom:8px;">
               <span class="pill">Copper Ore: <b id="oreCopperCount">0</b></span>
+              <span class="pill">Tin Ore: <b id="oreTinCount">0</b></span>
+              <span class="pill">Iron Ore: <b id="oreIronCount">0</b></span>
               <span class="pill">Copper Bars: <b id="copperBarCount">0</b></span>
-              <button id="smeltOneBtn" class="btn-primary" data-smelt="bar_copper">Smelt 1</button>
-              <button id="smeltAllBtn" class="btn-primary" data-smelt="bar_copper">Smelt All</button>
+              <span class="pill">Bronze Bars: <b id="bronzeBarCount">0</b></span>
+              <span class="pill">Iron Bars: <b id="ironBarCount">0</b></span>
             </div>
             <div class="progress" style="margin-bottom:8px;">
               <div class="bar" id="smithBar"></div>
@@ -219,25 +228,50 @@
             <div id="smithLog" class="log" aria-live="polite"></div>
           </div>
 
-          <!-- Upgrade Copper Gear -->
+          <!-- Upgrade Gear -->
           <div class="card" style="padding:10px; margin-bottom:10px;">
-            <h3 style="margin:0 0 8px;">🛠️ Upgrade Copper Gear</h3>
-            <p class="small muted">Uses <b>1× Copper Upgrade Bar</b> to raise quality by <b>+10–25%</b> (higher Smithing skews higher).</p>
-            <div class="row" style="gap:8px; margin-bottom:8px;">
+            <h3 style="margin:0 0 8px;">🛠️ Upgrade Gear</h3>
+            <p class="small muted">
+              Spend <b>1× Copper Upgrade Bar</b> to improve quality by <b>+10–25%</b> (higher Smithing skews higher).
+            </p>
+
+            <div class="row" style="gap:8px; margin-bottom:8px; flex-wrap:wrap;">
               <span class="pill">Upgrade Bars: <b id="upgradeBarCount">0</b></span>
-              <select id="upgradeTarget"></select>
-              <button id="applyUpgradeBtn" class="btn-success">Apply</button>
+
+              <label class="muted" for="upgradeFilter">Metal</label>
+              <select id="upgradeFilter">
+                <option value="all">All</option>
+                <option value="copper">Copper</option>
+                <option value="bronze">Bronze</option>
+                <option value="iron">Iron</option>
+              </select>
+
+              <select id="upgradeTarget" style="min-width:220px;">
+                <option disabled selected>Nothing upgradable</option>
+              </select>
+
+              <button id="applyUpgradeBtn" class="btn-success" disabled>Apply</button>
             </div>
+
+            <p class="small muted">Tip: Items with a quality (e.g., <i>qty: 62%</i>) can be upgraded up to 100%.</p>
           </div>
+
 
           <!-- Forging (gear + materials) -->
           <div class="card" style="padding:10px;">
-            <h3 style="margin:0 0 8px;">🛡️ Forge Copper Gear & Materials</h3>
-            <p class="small muted" style="margin-top:-4px;">Includes <b>Copper Upgrade Bar</b> (3× Copper Bar → 1). Select below:</p>
+            <h3 style="margin:0 0 8px;">🛡️ Forge Gear & Materials</h3>
+            <!-- metal filter -->
+            <div class="row" style="gap:10px; margin-bottom:8px;">
+              <label class="muted" for="forgeMetal">Metal</label>
+              <select id="forgeMetal">
+                <option value="copper">Copper</option>
+                <option value="bronze">Bronze</option>
+                <option value="iron">Iron</option>
+              </select>
+            </div>
             <div id="forgeList" class="shop"></div>
           </div>
         </div>
-
 
         <!-- Combat panel (TURN-BASED) -->
         <div class="tabpanel hidden" id="tab-combat">

@@ -1,16 +1,15 @@
 // /systems/woodcutting.js
-import { TREES } from '../data/woodcutting.js';   // [{ id, name, level, baseTime, drop, xp }]
-import { ITEMS } from '../data/items.js';         // for axe speed (optional)
+import { TREES } from '../data/woodcutting.js';
+import { ITEMS } from '../data/items.js';         
 import { addItem } from './inventory.js';
 import { buildXpTable, levelFromXp } from './xp.js';
 
 const XP_TABLE = buildXpTable();
 const speedFromLevel = (lvl)=> 1 + 0.03*(lvl-1);  // +3% per Woodcutting level
-const clampMs = (ms)=> Math.max(350, ms);         // floor so actions aren’t instant
+const clampMs = (ms)=> Math.max(250, ms);         // floor so actions aren’t instant
 
 /* ---------------- helpers ---------------- */
 export function listTrees(_state){
-  // If you want to filter by biome/level later, do it here.
   return TREES;
 }
 

@@ -18,7 +18,7 @@ export function rollQuality(smithLvl){
   return Math.max(1, Math.min(100, q));
 }
 
-// ---- Extras (e.g., wood_handle for weapons/tools) ----
+// ---- extras (e.g., wood_handle) ----
 function hasExtras(state, rec){
   if(!rec?.extras?.length) return true;
   return rec.extras.every(ex => (state.inventory[ex.id]||0) >= ex.qty);
@@ -26,6 +26,11 @@ function hasExtras(state, rec){
 function spendExtras(state, rec){
   if(!rec?.extras?.length) return;
   rec.extras.forEach(ex => removeItem(state, ex.id, ex.qty));
+}
+
+// Resolve bar id for a forge recipe (multi-metal support)
+function barIdFor(rec){
+  return rec?.barId || (rec?.metal ? `bar_${rec.metal}` : 'bar_copper');
 }
 
 /* -------------------- Smelting -------------------- */
@@ -42,7 +47,7 @@ export function startSmelt(state, outId='bar_copper', onDone){
   const r = SMELT_RECIPES[outId]; if(!r) return false;
 
   const need = r.level || 1;
-  const lvl = levelFromXp(state.smithXp||0, XP_TABLE);
+  const lvl  = levelFromXp(state.smithXp||0, XP_TABLE);
   if (lvl < need) return false;
   if(!canSmelt(state, outId)) return false;
 
@@ -83,7 +88,8 @@ export function finishSmelt(state){
 /* -------------------- Forging (anvil) -------------------- */
 export function canForge(state, outId){
   const rec = FORGE_RECIPES.find(x=>x.id===outId); if(!rec) return false;
-  const barsOk = (state.inventory['bar_copper']||0) >= (rec.bars||0);
+  const barId = barIdFor(rec);
+  const barsOk = (state.inventory[barId]||0) >= (rec.bars||0);
   const extrasOk = hasExtras(state, rec);
   const lvl = levelFromXp(state.smithXp||0, XP_TABLE);
   const need = rec.level || 1;
@@ -118,7 +124,8 @@ export function finishForge(state){
   if (!rec){ state.action = null; return null; }
   if (!canForge(state, rec.id)){ state.action = null; return null; }
 
-  removeItem(state, 'bar_copper', rec.bars || 0);
+  const barId = barIdFor(rec);
+  removeItem(state, barId, rec.bars || 0);
   spendExtras(state, rec);
 
   const lvl = levelFromXp(state.smithXp || 0, XP_TABLE);
@@ -134,39 +141,36 @@ export function finishForge(state){
 }
 
 /* -------------------- Upgrades -------------------- */
-// Helper: parse "base@Q"
 function parseId(id=''){
   const [base, qStr] = String(id).split('@');
   const q = qStr ? Math.max(1, Math.min(100, parseInt(qStr,10)||0)) : null;
   return { base, q };
 }
-// Only allow copper gear for now (match your current design)
+// Currently limit upgrades to copper gear (matches existing upgrade-bar type)
 function isCopperGear(baseId){ return baseId?.startsWith('copper_'); }
 
 function rollUpgradeDelta(smithLvl){
-  // ~10–25%, with a slight smithing skew upward
-  const min = 10 + Math.floor(smithLvl/20); // +1 every 20 lvls
-  const max = 25 + Math.floor(smithLvl/15); // +1 every 15 lvls
+  // ~10–25%, slightly higher with Smithing
+  const min = 10 + Math.floor(smithLvl/20);
+  const max = 25 + Math.floor(smithLvl/15);
   const lo = Math.min(min, max), hi = Math.max(min, max);
   return Math.max(1, Math.floor(lo + Math.random()*(hi - lo + 1)));
 }
 
-// Returns [{ where:'inv'|'equip', token:'inv|id' or 'equip|slot', base, q, name }]
 export function listUpgradable(state, ITEMS){
   const out = [];
 
-  // inventory items with quality and copper prefix, q<100
+  // inventory
   for (const [id, qty] of Object.entries(state.inventory||{})){
     if (!qty) continue;
     const { base, q } = parseId(id);
-    if (!q) continue; // no quality suffix => skip
+    if (!q) continue;
     if (!isCopperGear(base)) continue;
     if (q >= 100) continue;
     const name = ITEMS?.[base]?.name || base.replace(/_/g,' ');
     out.push({ where:'inv', token:`inv|${id}`, base, q, name, qty });
   }
-
-  // equipped items
+  // equipped
   for (const [slot, id] of Object.entries(state.equipment||{})){
     if (!id) continue;
     const { base, q } = parseId(id);
@@ -177,7 +181,6 @@ export function listUpgradable(state, ITEMS){
     out.push({ where:'equip', token:`equip|${slot}`, base, q, name, slot });
   }
 
-  // sort by lowest quality first
   out.sort((a,b)=> (a.q||0)-(b.q||0) || a.name.localeCompare(b.name));
   return out;
 }
@@ -188,7 +191,7 @@ export function applyUpgrade(state, token){
 
   const smithLvl = levelFromXp(state.smithXp||0, XP_TABLE);
   const delta = rollUpgradeDelta(smithLvl);
-  const UPGRADE_XP = 5; // small smithing xp per upgrade
+  const UPGRADE_XP = 5;
 
   function upgradeId(oldId){
     const { base, q } = parseId(oldId);
@@ -221,4 +224,3 @@ export function applyUpgrade(state, token){
 
   return result;
 }
-

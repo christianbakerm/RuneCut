@@ -7,8 +7,8 @@ import { ITEMS } from '../data/items.js';
 // --- Tuning knobs (edit to taste) ---
 const BALANCE = {
   // Player ratings
-  atkLevelWeight: 1.75,   // how much Attack level feeds accuracy
-  atkGearWeight:  1.75,   // how much +Atk gear feeds accuracy
+  atkLevelWeight: 3.0,   // how much Attack level feeds accuracy
+  atkGearWeight:  2.5,   // how much +Atk gear feeds accuracy
   strLevelWeight: 0.75,  // how much Strength level feeds max hit
   strGearWeight:  1.00,  // how much +Str gear feeds max hit
 
