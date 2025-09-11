@@ -110,13 +110,16 @@ function ensureSmeltDropdown(){
   const prev = el.smeltSelect.value;
   el.smeltSelect.innerHTML = bars.map(id => {
     const name = prettyName(id);
-    return `<option value="${id}" ${id===prev ? 'selected':''}>${name}</option>`;
+    const req  = reqStrSmelt(id);
+    const label = req ? `${name} — ${req}` : name;
+    return `<option value="${id}" ${id===prev ? 'selected':''}>${label}</option>`;
   }).join('');
 
   if (!bars.includes(prev) && bars.length){
     el.smeltSelect.value = bars[0];
   }
 }
+
 
 let RAF = null;
 function stopForgeLoop(){
@@ -148,6 +151,14 @@ function startForgeLoop(){
   RAF = requestAnimationFrame(tick);
 }
 
+function reqStrSmelt(outId){
+  const r = SMELT_RECIPES?.[outId];
+  if (!r) return '';
+  const parts = (r.inputs || []).map(inp => `${inp.qty}× ${prettyName(inp.id)}`);
+  return parts.join(' + ');
+}
+
+
 function renderForgeList(){
   if (!el.forgeList) return;
   const want = el.forgeMetal?.value || 'copper';
@@ -167,26 +178,37 @@ function renderForgeList(){
     const isActive = busy && r.id === activeId;
     const pct = isActive ? Math.round(nowPct*100) : 0;
 
-    // Disabled/locked button; progress bar only for active
+    const icon = iconHtmlForRecipe(r);
+
     return `
       <button class="forge-item ${ok ? '' : 'disabled'} ${isActive ? 'busy':''}"
               data-id="${r.id}"
               ${ok ? '' : 'disabled aria-disabled="true"'}
               title="${ok ? '' : (isActive ? 'Forging…' : 'Missing level/materials or busy')}">
-        <span class="name">${r.name || prettyName(r.id)}</span>
-        <span class="req">Lv ${need}</span>
-        <small class="io">${reqStrForge(r)}</small>
-        ${isActive ? `
-          <div class="progress xs forge-progress" aria-hidden="true">
-            <div class="bar" style="width:${pct}%;"></div>
-          </div>` : ``}
+        <div class="forge-head">
+          ${icon}
+          <div class="forge-titles">
+            <span class="forge-name">${r.name || prettyName(r.id)}</span>
+            <span class="forge-sub">Lv ${need}</span>
+          </div>
+          <span class="forge-lvl">Lv ${need}</span>
+        </div>
+        <div class="forge-body">
+          <div class="forge-costs">
+            <span class="cost">${reqStrForge(r)}</span>
+          </div>
+          ${isActive ? `
+            <div class="progress xs forge-progress" aria-hidden="true">
+              <div class="bar" style="width:${pct}%;"></div>
+            </div>` : ``}
+        </div>
       </button>
     `;
   }).join('');
 
-  // kick or stop the loop based on state
   if (busy) startForgeLoop(); else stopForgeLoop();
 }
+
 
 function renderUpgradeDropdown(){
   if (!el.upgradeTarget) return;
@@ -317,6 +339,25 @@ on(document, 'click', '#forgeList .forge-item', (e, btn)=>{
     saveState(state);
   }
 });
+
+// tint from recipe metal
+function tintClassForRecipe(rec){
+  const m = metalOfRecipe(rec);
+  return m ? ` tint-${m}` : '';
+}
+
+// choose an icon for the recipe's output
+function iconHtmlForRecipe(rec){
+  const baseId = rec.id;
+  const def = ITEMS?.[baseId] || {};
+  const isMaterial = rec.kind === 'material' || /^bar_|^ore_/.test(baseId);
+  const src = def.img || (isMaterial ? 'assets/materials/ore.png' : null);
+  const tint = tintClassForRecipe(rec);
+  return src
+    ? `<img class="forge-icon icon-img${tint}" src="${src}" alt="${def.name || baseId}">`
+    : `<span class="forge-icon forge-icon-fallback">🛠️</span>`;
+}
+
 
 // Apply upgrade
 on(document, 'click', '#applyUpgradeBtn', ()=>{

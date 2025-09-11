@@ -132,20 +132,14 @@ on(document, 'click', '#chopBtn, #wcChopBtn, .chop-btn', ()=>{
 });
 
 function tryStartChop(){
-  let t = currentTree();
-  if (!t) return;
-
-  if (!canChop(state, t)){
-    const fb = firstAccessibleTree();
-    if (!fb) return;
-    state.selectedTreeId = fb.id;
-    saveState(state);
-    renderWoodcutting();
-    t = fb;
+  // If we're already chopping, do nothing. Keep the current selection.
+  if (state.action?.type === 'chop') {
+    if (el.actionLbl) el.actionLbl.textContent = 'Chopping…';
+    return;
   }
 
-  if (state.action) return;
-
+  const t = currentTree();
+  if (!t) return;
   const ok = startChop(state, t, ()=>{
     finishChop(state, t);
     const itemName = ITEMS[t.drop]?.name || t.drop;
@@ -160,3 +154,5 @@ function tryStartChop(){
 
   if (ok) renderWoodcutting();
 }
+
+

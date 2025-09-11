@@ -6,6 +6,7 @@ import { renderEquipment } from './equipment.js';
 import { hpMaxFor } from '../systems/combat.js';
 import { qs, on } from '../utils/dom.js';
 import { showTip, hideTip } from './tooltip.js';
+import { renderCombat } from './combat.js';
 
 const elInv = qs('#inventory');
 const elPopover = qs('#popover');
@@ -110,7 +111,7 @@ on(elInv, 'click', 'button.use-btn', (e, btn)=>{
   e.stopPropagation();            // <-- prevent .inv-slot.equip handler
   e.preventDefault();
   const id = btn.getAttribute('data-use');
-  if (eatItem(id)){ renderInventory(); saveState(state); }
+  if (eatItem(id)){ renderInventory(); renderCombat(); renderEquipment(); saveState(state); }
 });
 
 // Sell: stop bubbling so slot click doesn't fire
