@@ -2,6 +2,7 @@
 import { state, saveState } from '../systems/state.js';
 import { qs, on } from '../utils/dom.js';
 import { renderInventory } from './inventory.js';
+import { renderCrafting } from './crafting.js'
 import { pushLog } from './logs.js';
 import { renderSkills } from './skills.js';
 import { listTrees, canChop, startChop, finishChop } from '../systems/woodcutting.js';
@@ -153,6 +154,7 @@ function tryStartChop(){
     saveState(state);
     renderWoodcutting();
     renderInventory();
+    renderCrafting();
     renderSkills();
   });
 

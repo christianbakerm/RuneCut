@@ -26,7 +26,7 @@ const el = {
   // progress label
   smithLabel: qs('#smithLabel'),
 
-  // smelting UI (IDs must match your HTML)
+  // smelting UI
   smeltSelect: qs('#smeltSelect'),
   smeltOneBtn: qs('#smeltOneBtn'),
   smeltAllBtn: qs('#smeltAllBtn'),
@@ -76,27 +76,67 @@ function reqStrForge(rec){
   return parts.join(', ');
 }
 
+function isForging(){
+  return state.action?.type === 'smith' && state.action?.mode === 'forge';
+}
+function activeForgeId(){
+  return isForging() ? state.action.key : null;
+}
+function progressPct(){
+  if (!isForging()) return 0;
+  const now = performance.now();
+  const { startedAt, duration } = state.action;
+  const p = (now - (startedAt||now)) / Math.max(1, (duration||1));
+  return Math.max(0, Math.min(1, p));
+}
+
 // ---------- renderers ----------
 function ensureSmeltDropdown(){
   if (!el.smeltSelect) return;
 
-  // Build choices from SMELT_RECIPES keys (expect bar_copper, bar_bronze, bar_iron, ...)
   const bars = Object.keys(SMELT_RECIPES || {});
-  // Keep a stable order
   const order = ['bar_copper','bar_bronze','bar_iron'];
   bars.sort((a,b)=> (order.indexOf(a)+999) - (order.indexOf(b)+999) || a.localeCompare(b));
 
-  // Remember current selection to preserve user choice
   const prev = el.smeltSelect.value;
   el.smeltSelect.innerHTML = bars.map(id => {
     const name = prettyName(id);
     return `<option value="${id}" ${id===prev ? 'selected':''}>${name}</option>`;
   }).join('');
 
-  // If previous selection vanished, pick first
   if (!bars.includes(prev) && bars.length){
     el.smeltSelect.value = bars[0];
   }
+}
+
+let RAF = null;
+function stopForgeLoop(){
+  if (RAF) cancelAnimationFrame(RAF);
+  RAF = null;
+}
+function startForgeLoop(){
+  if (RAF) return;
+  const tick = ()=>{
+    RAF = null;
+    if (!isForging()) return;
+
+    // update progress width on the active button
+    const id = activeForgeId();
+    const bar = el.forgeList?.querySelector(`[data-id="${id}"] .forge-progress .bar`);
+    if (bar) {
+      bar.style.width = `${Math.round(progressPct()*100)}%`;
+    }
+
+    // optional: label text
+    if (el.smithLabel){
+      const r = FORGE_RECIPES.find(x=>x.id===id);
+      const pctTxt = `${Math.round(progressPct()*100)}%`;
+      el.smithLabel.textContent = `Forging ${r?.name || prettyName(id)}… ${pctTxt}`;
+    }
+
+    RAF = requestAnimationFrame(tick);
+  };
+  RAF = requestAnimationFrame(tick);
 }
 
 function renderForgeList(){
@@ -108,17 +148,35 @@ function renderForgeList(){
     .slice()
     .sort((a,b) => (a.level||1)-(b.level||1) || String(a.name||a.id).localeCompare(String(b.name||b.id)));
 
+  const busy = isForging();
+  const activeId = activeForgeId();
+  const nowPct = progressPct();
+
   el.forgeList.innerHTML = list.map(r=>{
-    const ok   = canForge(state, r.id);
+    const ok   = canForge(state, r.id) && !busy;   // lock everything while forging
     const need = r.level || 1;
+    const isActive = busy && r.id === activeId;
+    const pct = isActive ? Math.round(nowPct*100) : 0;
+
+    // Disabled/locked button; progress bar only for active
     return `
-      <button class="forge-item ${ok ? '' : 'disabled'}" data-id="${r.id}">
+      <button class="forge-item ${ok ? '' : 'disabled'} ${isActive ? 'busy':''}"
+              data-id="${r.id}"
+              ${ok ? '' : 'disabled aria-disabled="true"'}
+              title="${ok ? '' : (isActive ? 'Forging…' : 'Missing level/materials or busy')}">
         <span class="name">${r.name || prettyName(r.id)}</span>
         <span class="req">Lv ${need}</span>
         <small class="io">${reqStrForge(r)}</small>
+        ${isActive ? `
+          <div class="progress xs forge-progress" aria-hidden="true">
+            <div class="bar" style="width:${pct}%;"></div>
+          </div>` : ``}
       </button>
     `;
   }).join('');
+
+  // kick or stop the loop based on state
+  if (busy) startForgeLoop(); else stopForgeLoop();
 }
 
 function renderUpgradeDropdown(){
@@ -148,6 +206,7 @@ function renderUpgradeDropdown(){
 export function renderSmithing(){
   updateCounts();
 
+  // Only show Idle when *not* smithing (you already do this)
   if (el.smithLabel && (!state.action || state.action.type!=='smith')) {
     el.smithLabel.textContent = 'Idle';
   }
@@ -204,13 +263,12 @@ on(document, 'click', '#smeltAllBtn', ()=>{
   step();
 });
 
-// Changing the smelt dropdown is enough; buttons read it at click-time
+// Changing the smelt dropdown
 on(document, 'change', '#smeltSelect', ()=>{
-  // Optional: could update a helper text here; for now just ensure UI is fresh
   renderSmithing();
 });
 
-// Forge metal filter (matches your HTML id="#forgeMetal")
+// Forge metal filter
 on(document, 'change', '#forgeMetal', ()=>{
   renderForgeList();
 });
@@ -220,10 +278,12 @@ on(document, 'change', '#upgradeFilter', ()=>{
   renderUpgradeDropdown();
 });
 
-// Click a forge recipe
+// Click a forge recipe (now shows progress on the button and locks others)
 on(document, 'click', '#forgeList .forge-item', (e, btn)=>{
   const id = btn.dataset.id;
-  if (!id || !canForge(state, id)) return;
+  // hard guard: disabled/locked or busy
+  if (!id || btn.hasAttribute('disabled') || btn.classList.contains('disabled') || isForging()) return;
+  if (!canForge(state, id)) return;
 
   const ok = startForge(state, id, ()=>{
     const res = finishForge(state); // { outId, q, xp }
@@ -235,13 +295,18 @@ on(document, 'click', '#forgeList .forge-item', (e, btn)=>{
     }
     saveState(state);
     updateCounts();
-    renderSmithing();
+    renderSmithing();      // stops loop if finished
     renderInventory();
     renderEquipment();
     renderSkills();
   });
 
-  if (ok) renderSmithing();
+  if (ok){
+    // Immediately re-render to lock buttons and show initial bar, then animate
+    renderSmithing();
+    startForgeLoop();
+    saveState(state);
+  }
 });
 
 // Apply upgrade

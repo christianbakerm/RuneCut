@@ -1,15 +1,28 @@
 // data/items.js
 export const ITEMS = {
-    // Resources
-    log_oak:   { id:'log_oak',   name:'Oak Logs',  type:'resource', sell:1, icon:'🪵' },
-    log_pine:  { id:'log_pine',  name:'Pine Logs', type:'resource', sell:2, icon:'🪵' },
+    // Logs
+    log_oak:     { id:'log_oak',     name:'Oak Logs',     type:'resource', sell:1,  img:'assets/forestry/oak.png' },
+    log_pine:    { id:'log_pine',    name:'Pine Logs',    type:'resource', sell:2,  img:'assets/forestry/pine.png' },
+    log_birch:   { id:'log_birch',   name:'Birch Logs',   type:'resource', sell:3,  img:'assets/forestry/birch.png' },
+    log_cedar:   { id:'log_cedar',   name:'Cedar Logs',   type:'resource', sell:5,  img:'assets/forestry/cedar.png' },
+    log_willow:  { id:'log_willow',  name:'Willow Logs',  type:'resource', sell:8,  img:'assets/forestry/willow.png' },
+    log_maple:   { id:'log_maple',   name:'Maple Logs',   type:'resource', sell:12, img:'assets/forestry/maple.png' },
+    log_yew:     { id:'log_yew',     name:'Yew Logs',     type:'resource', sell:18, img:'assets/forestry/yew.png' },
+    log_runewood:{ id:'log_runewood',name:'Runewood Logs',type:'resource', sell:30, img:'assets/forestry/runewood.png' },
 
     // Materials
-    wood_handle: { id:'wood_handle', name:'Wood Handle', type:'material', sell:2, icon:'🪵' },
+    wood_handle: { id:'wood_handle', name:'Wood Handle', type:'material', sell:2, img: 'assets/materials/handle.png' },
   
     // Tools
     axe_copper: { id:'axe_copper', name:'Copper Axe', type:'equipment', slot:'axe', speed:1.25, img:'assets/equipment/bronze-axe.png' },
-    pick_copper: { id:'pick_copper', name:'Copper Pick', type:'equipment', slot:'pick', speed:1.25, img:'assets/equipment/bronze-axe.png' },
+    pick_copper: { id:'pick_copper', name:'Copper Pick', type:'equipment', slot:'pick', speed:1.25, img:'assets/equipment/bronze-pick.png' },
+    // Bronze
+    axe_bronze:  { id:'axe_bronze',  name:'Bronze Axe', type:'equipment', slot:'axe',  speed:1.35, img:'assets/equipment/bronze-axe.png' },
+    pick_bronze: { id:'pick_bronze', name:'Bronze Pick',type:'equipment', slot:'pick', speed:1.35, img:'assets/equipment/bronze-pick.png' },
+
+    // Iron
+    axe_iron:    { id:'axe_iron',    name:'Iron Axe',   type:'equipment', slot:'axe',  speed:1.50, img:'assets/equipment/bronze-axe.png' },
+    pick_iron:   { id:'pick_iron',   name:'Iron Pick',  type:'equipment', slot:'pick', speed:1.50, img:'assets/equipment/bronze-pick.png' },
 
     // Fishing resources
     raw_shrimps: { id:'raw_shrimps', name:'Raw Shrimp',  type:'resource', sell:1, img:'assets/food/raw_shrimp.png' },
@@ -32,15 +45,17 @@ export const ITEMS = {
     dolphin:     { id:'dolphin',     name:'Dolphin',     type:'food',     heal:55, sell:115, img:'assets/food/dolphin.png' },
 
     // Ores
-    ore_copper: { id:'ore_copper', name:'Copper Ore', type:'resource', sell:1, icon:'🪨' },
-    ore_tin:    { id:'ore_tin',    name:'Tin Ore',    type:'resource', sell:2, icon:'🪨' },
-    ore_iron:   { id:'ore_iron',   name:'Iron Ore',   type:'resource', sell:4, icon:'🪨' },
+    ore_copper: { id:'ore_copper', name:'Copper Ore', type:'resource', sell:1, img: 'assets/materials/ore.png' },
+    ore_tin:    { id:'ore_tin',    name:'Tin Ore',    type:'resource', sell:2, img: 'assets/materials/ore.png' },
+    ore_iron:   { id:'ore_iron',   name:'Iron Ore',   type:'resource', sell:4, img: 'assets/materials/ore.png' },
 
     // Smithing resource
-    bar_copper: { id:'bar_copper', name:'Copper Bar',  type:'resource', sell:3, icon:'🔶' },
-    bar_bronze: { id:'bar_bronze', name:'Bronze Bar', type:'resource', sell:5, icon:'🟫' },
-    bar_iron:   { id:'bar_iron',   name:'Iron Bar',   type:'resource', sell:8, icon:'⬜' },
+    bar_copper: { id:'bar_copper', name:'Copper Bar',  type:'resource', sell:3, img: 'assets/materials/bar.png' },
+    bar_bronze: { id:'bar_bronze', name:'Bronze Bar', type:'resource', sell:5, img: 'assets/materials/bar.png' },
+    bar_iron:   { id:'bar_iron',   name:'Iron Bar',   type:'resource', sell:8, img: 'assets/materials/bar.png' },
     copper_upgrade_bar: { id:'copper_upgrade_bar', name:'Copper Upgrade Bar', type:'material', sell:8, icon:'➕' },
+    bronze_upgrade_bar: { id:'bronze_upgrade_bar', name:'Bronze Upgrade Bar', type:'material', sell:20, icon:'➕' },
+    iron_upgrade_bar: { id:'iron_upgrade_bar', name:'Iron Upgrade Bar', type:'material', sell:45, icon:'➕' },
 
     // --- Copper ---
     copper_helm:   { id:'copper_helm',   name:'Copper Helm',   type:'equipment', slot:'head',   def:3, sell:6, img:'assets/equipment/bronze-helm.png' },

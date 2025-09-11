@@ -2,6 +2,7 @@
 import { state, saveState } from '../systems/state.js';
 import { CRAFT_RECIPES } from '../data/crafting.js';
 import { canCraft, startCraft, finishCraft } from '../systems/crafting.js';
+import { renderSmithing } from './smithing.js';
 import { qs, on } from '../utils/dom.js';
 import { pushCraftLog } from './logs.js';
 import { renderInventory } from './inventory.js';
@@ -83,8 +84,9 @@ on(document, 'click', '#craftList .craft-item', (e, btn) => {
       // ✅ log with XP gained
       const name = res.name || res.id || id;
       pushCraftLog(`Crafted ${name} → +${xpAmt} ${xpSkill} xp`);
-      renderInventory();   // show new items immediately
-      renderSkills();      // reflect crafting xp
+      renderInventory();
+      renderSmithing();
+      renderSkills();
     }
     saveState(state);
     renderCrafting();      // reset label/progress & re-enable list
