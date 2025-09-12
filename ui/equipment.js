@@ -168,6 +168,16 @@ export function renderEquipment(){
   ensureTomeEngine(state);
 }
 
+onManaChange(() => {
+  // lightweight: just repaint the character HUD
+  // (you already have renderCharacter() inside this module)
+  try { renderCharacter(); } catch {}
+});
+
+window.addEventListener('hp:change', () => {
+  try { renderCharacter(); } catch {}
+});
+
 /* ---------------- events ---------------- */
 // Unequip
 on(grid, 'click', '.unequip-x', (e, btn)=>{

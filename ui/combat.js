@@ -25,8 +25,8 @@ const el = {
   // HUD
   playerHpBar:    qs('#playerHpBar'),
   playerHpVal:    qs('#playerHpVal'),
-  playerManaBar: qs('#playerManaBar'),
-  playerManaVal: qs('#playerManaVal'),
+  playerManaBar:  qs('#playerManaBar'),
+  playerManaVal:  qs('#playerManaVal'),
   monHpBar:       qs('#monHpBar'),
   monHpVal:       qs('#monHpVal'),
   monNameHud:     qs('#monName'),
@@ -68,7 +68,6 @@ function bubbleDamage(anchorBarEl, amount, kind='dealt', {crit=false, slam=false
   host.appendChild(d);
   d.addEventListener('animationend', ()=> d.remove(), { once:true });
 }
-
 
 function currentMonster(){
   const id = state.selectedMonsterId || el.monsterSelect?.value;
@@ -158,57 +157,26 @@ export function renderCombat(){
   paintCharVsSelected();
 }
 
-/* ----------------- Wiring ----------------- */
-
-on(document, 'change', '#monsterSelect', ()=>{
-  state.selectedMonsterId = el.monsterSelect.value;
-  saveState(state);
-  renderCombat();
-  renderEquipment(); // keep "Accuracy vs Selected" pill fresh
-});
-
-on(document, 'change', '#trainingSelect', ()=>{
-  state.trainingStyle = el.trainingSelect.value || 'shared';
-  saveState(state);
-  pushCombatLog?.(`Training style set to ${state.trainingStyle}.`);
-  renderPanelLogs();
-});
-
-el.fightBtn?.addEventListener('click', ()=>{
-  const mon = currentMonster();
-  if (!mon || state.combat) return;
-  beginFight(state, mon.id);
-  pushCombatLog?.(`You engage ${mon.name}!`);
-  saveState(state);
-  renderCombat();
-  renderPanelLogs();
-  renderEquipment();
-});
-
-// --- log parsing helpers ---
-function parseDamage(line){
-  const m = /for\s+(\d+)/i.exec(line||'');
-  return m ? parseInt(m[1],10) : null;
+/* ---------- Auto-fight loop ---------- */
+let fightLoop = null;
+function stopFightLoop(){
+  if (fightLoop) { clearInterval(fightLoop); fightLoop = null; }
 }
-const hasCrit = (s='') => /\bcrit/i.test(s) || /\bcritical\b/i.test(s);
-const isMissLine = (s='') => /\bmiss\b/i.test(s);
-const isBlockLine = (s='') => /\bblock(ed)?\b/i.test(s);
 
-el.attackBtn?.addEventListener('click', ()=>{
-  if (!state.combat) return;
-  if (nowMs() < atkCooldownUntil) return; // still cooling
+// Parse & apply FX for a single turn’s log lines
+function applyTurnFx(logs){
+  const parseDamage = (line)=> {
+    const m = /for\s+(\d+)/i.exec(line||'');
+    return m ? parseInt(m[1],10) : null;
+  };
+  const hasCrit = (s='') => /\bcrit/i.test(s) || /\bcritical\b/i.test(s);
 
-  const result = turnFight(state);
-  const logs = result?.log || [];
-  logs.forEach(line => pushCombatLog(line));
-
-  // --- micro FX based on log lines ---
   const youHitLine  = logs.find(l => l.startsWith('You hit '));
   const monHitLine  = logs.find(l => /\bhits you for\b/i.test(l));
   const youMissLine = logs.find(l => /\byou miss\b/i.test(l));
   const monMissLine = logs.find(l => /misses you\b/i.test(l));
-  const youBlockLn  = logs.find(l => /\byou block\b/i.test(l));      // player blocked enemy
-  const monBlockLn  = logs.find(l => /\bblocks your\b/i.test(l));    // enemy blocked player
+  const youBlockLn  = logs.find(l => /\byou block\b/i.test(l));
+  const monBlockLn  = logs.find(l => /\bblocks your\b/i.test(l));
 
   const dmgMon = parseDamage(youHitLine);
   const dmgYou = parseDamage(monHitLine);
@@ -235,9 +203,18 @@ el.attackBtn?.addEventListener('click', ()=>{
   } else if (youBlockLn){
     bubbleDamage(el.playerHpBar, 0, 'block', { text:'Block' });
   }
+}
+
+// Runs one combat turn: logs, FX, HUD, end handling. Returns result from turnFight.
+function runCombatTurn(){
+  const result = turnFight(state);
+  const logs = result?.log || [];
+  logs.forEach(line => pushCombatLog(line));
+  applyTurnFx(logs);
 
   // Apply cooldown immediately
   atkCooldownUntil = nowMs() + ATK_COOLDOWN_MS;
+
   renderCombat();
   renderEquipment();
   renderPanelLogs();
@@ -259,7 +236,54 @@ el.attackBtn?.addEventListener('click', ()=>{
     saveState(state);
   }
 
-  // When cooldown ends, repaint once so the button re-enables even without other updates
+  return result;
+}
+
+function startFightLoop(){
+  stopFightLoop();
+  fightLoop = setInterval(()=>{
+    if (!state.combat) { stopFightLoop(); return; }
+    if (nowMs() < atkCooldownUntil) return; // respect cooldown
+    const res = runCombatTurn();
+    if (res?.done) stopFightLoop();
+  }, ATK_COOLDOWN_MS);
+}
+
+/* ----------------- Wiring ----------------- */
+
+on(document, 'change', '#monsterSelect', ()=>{
+  state.selectedMonsterId = el.monsterSelect.value;
+  saveState(state);
+  renderCombat();
+  renderEquipment(); // keep "Accuracy vs Selected" pill fresh
+});
+
+on(document, 'change', '#trainingSelect', ()=>{
+  state.trainingStyle = el.trainingSelect.value || 'shared';
+  saveState(state);
+  pushCombatLog?.(`Training style set to ${state.trainingStyle}.`);
+  renderPanelLogs();
+});
+
+el.fightBtn?.addEventListener('click', ()=>{
+  const mon = currentMonster();
+  if (!mon || state.combat) return;
+  beginFight(state, mon.id);
+  pushCombatLog?.(`You engage ${mon.name}!`);
+  saveState(state);
+  renderCombat();
+  renderPanelLogs();
+  renderEquipment();
+  startFightLoop(); // ⟵ start auto-attacks every 0.5s
+});
+
+// Manual attack still works (optional)
+el.attackBtn?.addEventListener('click', ()=>{
+  if (!state.combat) return;
+  if (nowMs() < atkCooldownUntil) return; // still cooling
+  const res = runCombatTurn();
+  if (res?.done) stopFightLoop();
+  // Re-enable after cooldown even without other updates
   setTimeout(()=> renderCombat(), ATK_COOLDOWN_MS + 10);
 });
 
@@ -269,6 +293,7 @@ el.fleeBtn?.addEventListener('click', ()=>{
   pushCombatLog?.(`You fled from ${mon?.name || state.combat.monsterId}.`);
   state.combat = null;
   saveState(state);
+  stopFightLoop(); // ⟵ stop auto loop on flee
   renderCombat();
   renderEquipment();
   renderPanelLogs();
