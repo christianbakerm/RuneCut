@@ -5,6 +5,7 @@ import { COOK_RECIPES } from '../data/cooking.js';
 import { qs, on } from '../utils/dom.js';
 import { pushLog } from './logs.js';
 import { renderInventory } from './inventory.js';
+import { renderEnchanting } from './enchanting.js';
 import { renderSkills } from './skills.js';
 import { ITEMS } from '../data/items.js';
 
@@ -208,6 +209,7 @@ function endHold(source){
     } else {
       pushLog(`Removed too early — still raw`, 'cooking');
     }
+    renderEnchanting();
     renderInventory();
     renderSkills();
     saveState(state);

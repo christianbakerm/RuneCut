@@ -11,6 +11,7 @@ import { pushSmithLog } from './logs.js';
 import { renderInventory } from './inventory.js';
 import { renderSkills } from './skills.js';
 import { renderEquipment } from './equipment.js';
+import { renderEnchanting } from './enchanting.js';
 import { ITEMS } from '../data/items.js';
 
 const el = {
@@ -284,6 +285,7 @@ on(document, 'click', '#smeltAllBtn', ()=>{
       saveState(state);
       updateCounts();
       renderSmithing();
+      renderEnchanting();
       renderInventory();
       renderSkills();
       left -= 1;

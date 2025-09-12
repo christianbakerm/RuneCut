@@ -5,6 +5,7 @@ import { listRocks, canMine, startMine, finishMine } from '../systems/mining.js'
 import { qs, on } from '../utils/dom.js';
 import { pushLog } from './logs.js';
 import { renderInventory } from './inventory.js';
+import { renderEnchanting } from './enchanting.js';
 import { renderSkills } from './skills.js';
 import { ITEMS } from '../data/items.js';
 
@@ -115,6 +116,7 @@ on(document, 'click', '#mineBtn', ()=>{
     const xp = r.xp || 0;
     pushLog(`Mined ${r.name || r.id} → +1 ${itemName} · Mining +${xp} xp`, 'mining');
     renderInventory();
+    renderEnchanting();
     renderSkills();
     saveState(state);
     renderMining();

@@ -8,13 +8,13 @@ import { renderFishing } from './fishing.js';
 import { renderMining } from './mining.js';
 import { renderCrafting } from './crafting.js';
 import { renderWoodcutting } from './woodcutting.js';
+import { renderEnchanting } from './enchanting.js';
 import { renderCombat } from './combat.js';
 import { renderSkills } from './skills.js';
 import { renderEquipment } from './equipment.js';
-import { renderPanelLogs, wireLogFilters } from './logs.js';
+import { renderPanelLogs, wireLogFilters, pushLog } from './logs.js';
 import { setTab, wireRoutes } from './router.js';
 import { updateBar, resetBar } from './actionbars.js';
-
 import { qs } from '../utils/dom.js';
 
 // ---- one-time hydrate + bootstrap ------------------------------------------
@@ -93,6 +93,7 @@ function wireSaveReset(){
     renderCombat();
     renderSkills();
     renderEquipment();
+    renderEnchanting();
     renderPanelLogs();
     setTab('forests');
   });
@@ -107,6 +108,7 @@ function initialPaint(){
   renderMining();
   renderCrafting();
   renderWoodcutting();
+  renderEnchanting();
   renderCombat();
   renderSkills();
   renderEquipment();
@@ -174,6 +176,33 @@ function tick(){
 
   rafId = requestAnimationFrame(tick);
 }
+
+//log tome xp
+window.addEventListener('tome:tick', (e)=>{
+  const { dropId, skill, xp } = e.detail || {};
+  // Example: send to a skill-specific channel ('wc', 'fishing', etc) or 'skilling'
+  pushLog(`Tome gathered +1 ${dropId.replace(/_/g,' ')}${xp?` · +${xp} ${skill} xp`:''}`, skill || 'skilling');
+  renderPanelLogs();
+});
+
+// repaint helpers (useful for updating after tome events)
+function refreshInvAndSkills(){
+  renderInventory();
+  renderSkills();
+}
+
+// Repaint on tome activity
+window.addEventListener('tome:tick', refreshInvAndSkills);
+
+window.addEventListener('tome:stack', () => {
+  renderEquipment();      // updates equipped tome qty
+  refreshInvAndSkills();  // reflect inventory/XP changes
+});
+
+window.addEventListener('tome:end', () => {
+  renderEquipment();      // removes tome when stack hits 0
+  renderInventory();
+});
 
 // ---- app start --------------------------------------------------------------
 function startApp(){

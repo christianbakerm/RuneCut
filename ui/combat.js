@@ -7,6 +7,7 @@ import { pushCombatLog, renderPanelLogs } from './logs.js';
 import { renderInventory } from './inventory.js';
 import { renderEquipment } from './equipment.js';
 import { renderSkills } from './skills.js';
+import { ensureMana, manaMaxFor, startManaRegen } from '../systems/mana.js';
 
 const el = {
   monsterSelect:  qs('#monsterSelect'),
@@ -24,6 +25,8 @@ const el = {
   // HUD
   playerHpBar:    qs('#playerHpBar'),
   playerHpVal:    qs('#playerHpVal'),
+  playerManaBar: qs('#playerManaBar'),
+  playerManaVal: qs('#playerManaVal'),
   monHpBar:       qs('#monHpBar'),
   monHpVal:       qs('#monHpVal'),
   monNameHud:     qs('#monName'),
@@ -108,6 +111,10 @@ function paintHud(){
   if (state.hpCurrent == null) state.hpCurrent = maxHp;
   const curHp = Math.max(0, Math.min(maxHp, state.hpCurrent));
   setBar(el.playerHpBar, el.playerHpVal, curHp, maxHp);
+  ensureMana(state);
+  const maxMp = manaMaxFor(state);
+  const curMp = Math.max(0, Math.min(maxMp, state.manaCurrent));
+  setBar(el.playerManaBar, el.playerManaVal, curMp, maxMp);
 
   // Monster (selected or active)
   const active = state.combat;
@@ -140,6 +147,12 @@ function paintCharVsSelected(){
 export function renderCombat(){
   ensureSelection();
   const mon = currentMonster();
+  ensureMana(state);
+  startManaRegen(state, ()=>{
+    saveState(state);
+    const maxMp = manaMaxFor(state);
+    setBar(el.playerManaBar, el.playerManaVal, state.manaCurrent, maxMp);
+  });
   paintMonsterCard(mon);
   paintHud();
   paintCharVsSelected();

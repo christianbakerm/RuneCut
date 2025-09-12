@@ -14,7 +14,7 @@
   --shadow: 0 10px 30px rgba(0,0,0,.35);
   --progress-h: 20px;
   --progress-h-xs: 8px;
-  --progress-h-hp: 40px;
+  --progress-h-hp: 30px;
   --cook-bar-h: 20px;
 }
 * { box-sizing: border-box; }
@@ -521,7 +521,7 @@ html, body {            /* let the page grow; don't lock height to viewport */
 .craft-item .right { display: flex; gap: 6px; align-items: center; }
 .craft-item .badge{
   display: inline-flex; align-items: center; height: 22px;
-  padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  padding: 0 6px; border-radius: 999px; font-size: 12px; font-weight: 700;
   border: 1px solid #2a3162; background: #0e132c; color: var(--text);
 }
 .craft-item .badge.level{
@@ -686,4 +686,89 @@ img.icon-img.tint-iron {
   border: 1px solid rgba(255,255,255,.08);
   padding: 2px 6px;
   border-radius: 8px;
+}
+
+.progress.mana {
+  height: var(--progress-h-hp);
+  border-color:#243a6b;
+  background:#0b1226;
+  color: #cfe3ff;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+.progress.mana .bar {
+  background: linear-gradient(90deg, #7aa2ff, #87f4ff);
+}
+#playerManaVal {
+  color:#cfe3ff;
+  text-shadow:0 1px 2px rgba(0,0,0,.5);
+}
+
+#charHpText,
+#charManaText {
+  font-weight: 800;
+  color: #cfe3ff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+
+.progress.hp .label,
+.progress.hp.enemy .label,
+.progress.mana .label,
+#charHpLabel,
+#charManaLabel{
+  color: var(--text);
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+
+.icon-img.tint-forest { filter: hue-rotate(90deg) saturate(1.2); }
+
+/* Enchanting animation layer */
+.enchant-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.enchant-ghost {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  opacity: 0;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.25));
+}
+.enchant-ghost .ghost-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.enchant-ghost.mana {
+  width: 22px;
+  height: 22px;
+  font-size: 22px;
+  line-height: 22px;
+  text-align: center;
+}
+
+/* quick little pulse at the focus point */
+.enchant-burst {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 2px rgba(80,200,255,.4),
+    0 0 16px 6px rgba(120,220,255,.25),
+    inset 0 0 24px rgba(120,220,255,.2);
+  animation: enchant-pulse 900ms ease-out 1 forwards;
+  opacity: .9;
+  transform: translate(-60px, -60px);
+}
+@keyframes enchant-pulse {
+  0%   { opacity:.95; transform: translate(-60px,-60px) scale(.9); }
+  50%  { opacity:1;   transform: translate(-60px,-60px) scale(1.05); }
+  100% { opacity:.0;  transform: translate(-60px,-60px) scale(1.2); }
 }

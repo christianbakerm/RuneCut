@@ -7,6 +7,7 @@ import { pushLog } from './logs.js';
 import { renderSkills } from './skills.js';
 import { listTrees, canChop, startChop, finishChop } from '../systems/woodcutting.js';
 import { ITEMS } from '../data/items.js';
+import { renderEnchanting } from './enchanting.js';
 
 const el = {
   treeList:   qs('#treeList') || qs('#forestList'),
@@ -141,13 +142,14 @@ function tryStartChop(){
   const t = currentTree();
   if (!t) return;
   const ok = startChop(state, t, ()=>{
-    finishChop(state, t);
+    const res = finishChop(state, t);
     const itemName = ITEMS[t.drop]?.name || t.drop;
     const xp = t.xp || 0;
-    pushLog(`Chopped ${t.name || t.id} → +1 ${itemName} · Woodcutting +${xp} xp`, 'wc');
-    saveState(state);
+    const essTxt = res?.essence ? ` · +1 ${ITEMS['forest_essence']?.name || 'Forest Essence'}` : '';
+    pushLog(`Chopped ${t.name || t.id} → +1 ${itemName}${essTxt} · Forestry +${xp} xp`, 'wc');    saveState(state);
     renderWoodcutting();
     renderInventory();
+    renderEnchanting();
     renderCrafting();
     renderSkills();
   });

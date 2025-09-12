@@ -75,6 +75,11 @@
             <div class="tile-level">Lvl <b id="cookLevelMini">1</b></div>
             <div class="progress xs"><div class="bar" id="cookBarMini"></div></div>
           </div>
+          <div id="tile-enchant" class="skill-tile">
+            <div class="tile-header">Enchanting</div>
+            <div class="tile-level">Lvl <b id="enchantLevelMini">1</b></div>
+            <div class="progress xs"><div class="bar" id="enchantBarMini"></div></div>
+          </div>
           <div class="skill-tile" id="tile-atk">
             <div class="tile-header">⚔️ <span>Attack</span></div>
             <div class="tile-level">Lvl <b id="atkLevelMini">1</b></div>
@@ -97,7 +102,7 @@
         <div id="inventory" class="inventory"></div>
       </section>
 
-      <!-- MIDDLE: Areas (Forests + Fishing + Cooking + Mining + Combat) -->
+      <!-- MIDDLE: Areas -->
       <section class="card" id="areasCard">
         <div class="tabs">
           <button class="tab active" data-tab="forests">🌲 Forests</button>
@@ -106,6 +111,7 @@
           <button class="tab" data-tab="cooking">🍳 Cooking</button>
           <button class="tab" data-tab="mining">⛏️ Mining</button>
           <button class="tab" data-tab="smithing">⚒️ Smithing</button>
+          <button class="tab" data-tab="enchanting">Enchanting</button>
           <button class="tab" data-tab="combat">⚔️ Combat</button>
         </div>
 
@@ -272,8 +278,28 @@
             <div id="forgeList" class="shop"></div>
           </div>
         </div>
-
-        <!-- Combat panel (TURN-BASED) -->
+        <!-- Enchanting panel -->
+        <div class="tabpanel hidden" id="tab-enchanting">
+          <h2>🪄 Enchanting</h2>
+          <p class="small muted" style="margin:6px 0;">
+            Turn <b>Books</b> into <b>Tomes</b> using <b>Mana</b> and <b>Essences</b>. Higher Enchanting level unlocks more recipes.
+          </p>
+        
+          <div class="row small muted" style="justify-content:space-between; align-items:center;">
+            <span>Mana: <b id="enchantManaVal">0/0</b></span>
+            <span id="enchantLabel">Idle</span>
+          </div>
+        
+          <div class="progress xs" style="margin:6px 0 10px;">
+            <div id="enchantBar" class="bar" style="width:0%"></div>
+          </div>
+          <div class="card" style="padding:10px;">
+            <h2 style="margin-bottom:6px;">📜 Log</h2>
+          <div id="enchantLog" class="log" aria-live="polite"></div>
+          </div>
+          <div id="enchantList" class="shop"></div>
+        </div>
+        <!-- Combat panel -->
         <div class="tabpanel hidden" id="tab-combat">
           <h2>⚔️ Combat</h2>
           <div class="row" style="gap:10px; margin-bottom:10px;">
@@ -306,11 +332,22 @@
           <div class="combat-hud">
             <div class="hud-col">
               <div class="hud-name">You</div>
-              <div class="progress hp"><div class="bar" id="playerHpBar"></div><div class="label" id="playerHpVal">0/0</div></div>
+              <div class="progress hp">
+                <div class="bar" id="playerHpBar"></div>
+                <div class="label" id="playerHpVal">0/0</div>
+              </div>
+              <div class="progress mana">
+                <div class="bar" id="playerManaBar"></div>
+                <div class="label" id="playerManaVal">10/10</div>
+              </div>
             </div>
+          
             <div class="hud-col">
               <div class="hud-name" id="monName">—</div>
-              <div class="progress hp enemy"><div class="bar" id="monHpBar"></div><div class="label" id="monHpVal">0/0</div></div>
+              <div class="progress hp enemy">
+                <div class="bar" id="monHpBar"></div>
+                <div class="label" id="monHpVal">0/0</div>
+              </div>
             </div>
           </div>
 
@@ -370,6 +407,13 @@
             <div class="slot empty"><span class="icon">💍</span><button class="unequip-x" data-unequip="ring" title="Unequip">✕</button></div>
             <div class="slot-label">Ring</div>
           </div>
+          <div class="equip-cell" data-slot="tome">
+            <div class="slot empty">
+              <span class="icon">📖</span>
+              <button class="unequip-x" data-unequip="tome" title="Unequip">✕</button>
+            </div>
+            <div class="slot-label">Tome</div>
+          </div>
           <div class="equip-cell" data-slot="axe">
             <div class="slot empty"><span class="icon">🪓</span><button class="unequip-x" data-unequip="axe" title="Unequip">✕</button></div>
             <div class="slot-label">Axe</div>
@@ -390,6 +434,10 @@
           <div class="stat"><span>Def</span> <b id="charDef">0</b></div>
         </div>
         <div class="progress hp" title="Your HP"><div class="bar" id="charHpBar"></div><div class="label" id="charHpLabel">0%</div></div>
+        <div class="progress mana">
+          <div class="bar" id="charManaBar"></div>
+          <div class="label" id="charManaLabel">10/10</div>
+        </div>        
         <div class="row small" style="margin-top:8px;">
           <span class="pill">Max Hit: <b id="charMaxHit">1</b></span>
           <span class="pill">Accuracy vs Selected: <b id="charAcc">—</b></span>

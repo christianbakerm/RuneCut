@@ -4,15 +4,16 @@ import { XP_TABLE, levelFromXp } from '../systems/xp.js';
 import { showTip, hideTip } from './tooltip.js';
 
 const SK = [
-  { key:'wc',    xp:'wcXp',    id:'#tile-wc',    label:'Woodcutting' },
-  { key:'fish',  xp:'fishXp',  id:'#tile-fish',  label:'Fishing' },
-  { key:'min',   xp:'minXp',   id:'#tile-min',   label:'Mining' },
-  { key:'smith', xp:'smithXp', id:'#tile-smith', label:'Smithing' },
-  { key:'craft', xp:'craftXp', id:'#tile-craft', label:'Crafting' },
-  { key:'cook',  xp:'cookXp',  id:'#tile-cook',  label:'Cooking' },
-  { key:'atk',   xp:'atkXp',   id:'#tile-atk',   label:'Attack' },
-  { key:'str',   xp:'strXp',   id:'#tile-str',   label:'Strength' },
-  { key:'def',   xp:'defXp',   id:'#tile-def',   label:'Defense' },
+  { key:'wc',      xp:'wcXp',      id:'#tile-wc',      label:'Woodcutting' },
+  { key:'fish',    xp:'fishXp',    id:'#tile-fish',    label:'Fishing' },
+  { key:'min',     xp:'minXp',     id:'#tile-min',     label:'Mining' },
+  { key:'smith',   xp:'smithXp',   id:'#tile-smith',   label:'Smithing' },
+  { key:'craft',   xp:'craftXp',   id:'#tile-craft',   label:'Crafting' },
+  { key:'enchant', xp:'enchantXp', id:'#tile-enchant', label:'Enchanting' }, // ← NEW
+  { key:'cook',    xp:'cookXp',    id:'#tile-cook',    label:'Cooking' },
+  { key:'atk',     xp:'atkXp',     id:'#tile-atk',     label:'Attack' },
+  { key:'str',     xp:'strXp',     id:'#tile-str',     label:'Strength' },
+  { key:'def',     xp:'defXp',     id:'#tile-def',     label:'Defense' },
 ];
 
 // Helpers around your XP table (assumed cumulative thresholds by level)
@@ -42,14 +43,14 @@ function paintTile(s){
   const need   = Math.max(1, next - base);
   const frac   = clamp01(gained / need);
 
-  // 1) Level number inside existing markup: <div class="tile-level">Lvl <b id="wcLevelMini">1</b></div>
+  // 1) Level number
   const lvlNumEl =
     document.getElementById(`${s.key}LevelMini`) ||
     tile.querySelector('.tile-level b') ||
     tile.querySelector('b');
   if (lvlNumEl) lvlNumEl.textContent = String(lvl);
 
-  // 2) Progress bar inside the tile (uses your .progress .bar structure)
+  // 2) Progress bar inside the tile
   const prog = tile.querySelector('.progress');
   if (prog) {
     const bar = prog.querySelector('.bar');
@@ -97,8 +98,9 @@ attachHoversOnce();
 // Utility used by app.js (or anywhere) to detect XP changes cheaply
 export function skillsXpSignature(){
   return (
-    (state.wcXp|0) + (state.fishXp|0) + (state.minXp|0) +
-    (state.smithXp|0) + (state.craftXp|0) + (state.cookXp|0) +
-    (state.atkXp|0)  + (state.strXp|0)   + (state.defXp|0)
+    (state.wcXp|0)     + (state.fishXp|0)   + (state.minXp|0)    +
+    (state.smithXp|0)  + (state.craftXp|0)  + (state.enchantXp|0) + // ← NEW
+    (state.cookXp|0)   + (state.atkXp|0)    + (state.strXp|0)    +
+    (state.defXp|0)
   );
 }

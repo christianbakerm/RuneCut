@@ -1,3 +1,4 @@
+// /ui/inventory.js
 import { ITEMS } from '../data/items.js';
 import { saveState, state } from '../systems/state.js';
 import { removeItem, addGold } from '../systems/inventory.js';
@@ -6,27 +7,47 @@ import { renderEquipment } from './equipment.js';
 import { hpMaxFor } from '../systems/combat.js';
 import { qs, on } from '../utils/dom.js';
 import { showTip, hideTip } from './tooltip.js';
-import { renderCombat } from './combat.js';
+import { tomeDurationMsFor, tomeRemainingMs } from '../systems/tomes.js';
 
 const elInv = qs('#inventory');
 const elPopover = qs('#popover');
 
+/* ------------- ensure CSS for quick-equip ------------- */
+(function ensureInvEquipCSS(){
+  if (document.getElementById('invEquipCSS')) return;
+  const css = document.createElement('style');
+  css.id = 'invEquipCSS';
+  css.textContent = `
+    #inventory .inv-slot{ position:relative; }
+    #inventory .inv-slot .equip-quick{
+      position:absolute; left:4px; bottom:4px; z-index:2;
+      font-size:11px; padding:2px 6px; line-height:14px;
+      opacity:0; pointer-events:none; transition:opacity .15s ease;
+    }
+    #inventory .inv-slot:hover .equip-quick{ opacity:1; pointer-events:auto; }
+    /* keep sell in bottom-right */
+    #inventory .inv-slot .sell-btn{ position:absolute; right:4px; bottom:4px; z-index:2; }
+  `;
+  document.head.appendChild(css);
+})();
+
 /* ---------------- metal/tint helpers ---------------- */
 function baseId(id){ return String(id).split('@')[0]; }
+
 function metalFromItemId(id=''){
   const s = baseId(id);
-  // bar_* or ore_*
   let m = s.match(/^bar_(\w+)/)?.[1] || s.match(/^ore_(\w+)/)?.[1];
   if (m) return m;
-  // axe_copper / pick_bronze
   m = s.match(/^(axe|pick)_(\w+)/)?.[2];
   if (m) return m;
-  // copper_helm, bronze_plate, iron_legs, etc.
   m = s.split('_')[0];
   if (['copper','bronze','iron','steel','mith','adamant','rune'].includes(m)) return m;
   return null;
 }
 function tintClassForItem(id=''){
+  const base = baseId(id);
+  const def = ITEMS[base] || {};
+  if (def.tint) return ` tint-${def.tint}`;
   const m = metalFromItemId(id);
   return m ? ` tint-${m}` : '';
 }
@@ -60,10 +81,9 @@ function healAmountFor(id){
 }
 function eatItem(id){
   const heal = healAmountFor(id);
-  if (heal <= 0) return false;
+  if(heal <= 0) return false;
   const max = hpMaxFor(state);
-  if (state.hpCurrent >= max) return false;
-  const base = baseId(id);
+  if(state.hpCurrent >= max) return false;
   state.hpCurrent = Math.min(max, state.hpCurrent + heal);
   removeItem(state, id, 1);
   return true;
@@ -83,50 +103,50 @@ export function renderInventory(){
     const it   = ITEMS[base] || {};
     const isEquip = it.type === 'equipment';
     const isFood  = (it.type === 'food') || (healAmountFor(id) > 0);
-
-    // If it's a bar/ore and no specific image is provided, use the shared sprite
-    const isMat = /^bar_|^ore_/.test(base);
-    const imgSrc = it.img || (isMat ? 'assets/materials/ore.png' : null);
-
-    // Tint based on item id (metal); ignores def.tint so tools/ores/bars auto-color
+    const isMat   = /^bar_|^ore_/.test(base);
+    const imgSrc  = it.img || (isMat ? 'assets/materials/ore.png' : null);
     const tintCls = tintClassForItem(id);
-
     const iconHtml = imgSrc
       ? `<img src="${imgSrc}" class="icon-img${tintCls}" alt="">`
       : `<span class="icon">${it.icon || '❔'}</span>`;
+
+    const isTome = isEquip && (it.slot === 'tome');
 
     return `
       <div class="inv-slot ${isEquip ? 'equip' : ''}" data-id="${id}">
         ${iconHtml}
         ${isFood ? `<button class="use-btn" data-use="${id}" title="Eat">Eat</button>` : ''}
         <button class="sell-btn" data-sell="${id}">Sell</button>
+        ${isTome ? `<button class="equip-quick btn-primary" data-equip="${id}" title="Equip">Equip</button>` : ''}
         <span class="qty-badge">${qty}</span>
       </div>`;
   }).join('');
 }
 
 /* ---------------- interactions ---------------- */
-// Eat: stop bubbling so slot click doesn't fire
+// Eat
 on(elInv, 'click', 'button.use-btn', (e, btn)=>{
-  e.stopPropagation();            // <-- prevent .inv-slot.equip handler
-  e.preventDefault();
+  e.stopPropagation();
   const id = btn.getAttribute('data-use');
-  if (eatItem(id)){ renderInventory(); renderCombat(); renderEquipment(); saveState(state); }
+  if (eatItem(id)){ renderInventory(); saveState(state); }
 });
 
-// Sell: stop bubbling so slot click doesn't fire
+// Sell popover open
 on(elInv, 'click', 'button.sell-btn', (e, btn)=>{
-  e.stopPropagation();            // <-- prevent .inv-slot.equip handler
-  e.preventDefault();
+  e.stopPropagation(); // prevent slot click = equip
   openSellPopover(btn, btn.getAttribute('data-sell'));
 });
 
-// Equip: ignore clicks that originated on child buttons/badges
+// Quick-equip for tomes (quantity picker)
+on(elInv, 'click', 'button.equip-quick', (e, btn)=>{
+  e.stopPropagation();
+  const id = btn.getAttribute('data-equip');
+  openEquipPopover(btn, id);
+});
+
+// Clicking an equipment tile equips it — but ignore if a nested button was clicked
 on(elInv, 'click', '.inv-slot.equip', (e, tile)=>{
-  // Defensive guards even if a stopPropagation is missed somewhere
-  if (e.target.closest('button') || e.target.closest('.sell-btn') || e.target.closest('.use-btn') || e.target.closest('.qty-badge')) {
-    return;
-  }
+  if (e.target.closest('button')) return; // don't equip when pressing Sell/Equip buttons
   const id = tile.getAttribute('data-id');
   const base = baseId(id);
   const it = ITEMS[base];
@@ -139,6 +159,21 @@ on(elInv, 'click', '.inv-slot.equip', (e, tile)=>{
 });
 
 /* ---------------- tooltip ---------------- */
+function tomeTooltipLines(base){
+  const def = ITEMS[base] || {};
+  const lines = [];
+  if (def?.tome){
+    const ms = tomeDurationMsFor(state, base);
+    const secs = Math.round(ms/1000);
+    lines.push(`Runs for: ${secs}s (scales with Enchanting)`);
+    const rem = tomeRemainingMs(state);
+    if (rem > 0){
+      lines.push(`Active tome remaining: ${Math.ceil(rem/1000)}s`);
+    }
+  }
+  return lines;
+}
+
 on(elInv, 'mousemove', '.inv-slot', (e, tile)=>{
   const id = tile.getAttribute('data-id'); 
   if (!id){ hideTip(); return; }
@@ -169,6 +204,11 @@ on(elInv, 'mousemove', '.inv-slot', (e, tile)=>{
     if (stats.length) lines.push(stats.join(' · '));
 
     if (isTool && def.speed) lines.push(`Speed: ${Number(def.speed).toFixed(2)}×`);
+
+    // Tome specifics
+    if (def.slot === 'tome'){
+      lines.push(...tomeTooltipLines(base));
+    }
   }
 
   if (isFood){
@@ -205,6 +245,7 @@ function openSellPopover(anchorEl, id){
   const price = sellPrice(id);
 
   elPopover.dataset.itemId = id;
+  elPopover.dataset.mode = 'sell';
   elPopover.innerHTML = `
     <div class="small muted" style="margin-bottom:6px;">Sell <b>${it.icon||''} ${it.name||base}${String(id).includes('@')?` (${qualityPct(id)}%)`:''}</b></div>
     <div class="row">
@@ -225,26 +266,97 @@ function openSellPopover(anchorEl, id){
 }
 export function closePopover(){ elPopover?.classList.add('hidden'); }
 
+/* ---------------- equip popover (tomes) ---------------- */
+function openEquipPopover(anchorEl, id){
+  if(!elPopover) return;
+  const base = baseId(id);
+  const it = ITEMS[base]||{};
+  const have = state.inventory[id]||0;
+  const rect = anchorEl.getBoundingClientRect();
+
+  elPopover.dataset.equipId = id;
+  elPopover.dataset.mode = 'equip';
+  elPopover.innerHTML = `
+    <div class="small muted" style="margin-bottom:6px;">Equip <b>${it.icon||''} ${it.name||base}</b></div>
+    <div class="row">
+      <button class="btn-primary" data-eq-amt="1">1</button>
+      <button class="btn-primary" data-eq-amt="5">5</button>
+      <button class="btn-primary" data-eq-amt="10">10</button>
+      <button class="btn-primary" data-eq-amt="-1">All</button>
+    </div>
+    <div class="row">
+      <input type="number" id="equipCustomAmt" min="1" max="${have}" placeholder="Custom" />
+      <button class="btn-primary" data-eq-amt="custom">Equip</button>
+    </div>
+  `;
+  elPopover.style.left = Math.min(window.innerWidth - 200, rect.left) + 'px';
+  elPopover.style.top = (rect.top - 4 + window.scrollY) + 'px';
+  elPopover.classList.remove('hidden');
+}
+
+export function findInvIconEl(id){
+  // exact-id match first
+  const tile = document.querySelector(`#inventory .inv-slot[data-id="${CSS.escape(id)}"]`);
+  if (tile) return tile.querySelector('img.icon-img, .icon');
+  // fallback: match by base id (before @quality), pick the first
+  const base = String(id).split('@')[0];
+  const tiles = document.querySelectorAll('#inventory .inv-slot');
+  for (const t of tiles){
+    const tid = t.getAttribute('data-id') || '';
+    if (tid.split('@')[0] === base){
+      return t.querySelector('img.icon-img, .icon');
+    }
+  }
+  return null;
+}
+/* ---------------- popover click handling ---------------- */
 elPopover?.addEventListener('click', (e)=>{
-  const btn = e.target.closest('button[data-amt]'); if(!btn) return;
-  const id = elPopover.dataset.itemId; if(!id) return;
-  const have = state.inventory[id]||0; if(have<=0) return;
-  let amtAttr = btn.getAttribute('data-amt');
-  let n = 0;
-  if (amtAttr==='custom'){ const input = elPopover.querySelector('#sellCustomAmt'); n = Math.floor(+input.value||0); }
-  else n = parseInt(amtAttr,10);
-  if (n===-1) n = have;
-  if (!Number.isFinite(n) || n<=0) return;
-  n = Math.min(n, have);
-  const value = sellPrice(id) * n;
-  removeItem(state, id, n);
-  addGold(state, value);
-  closePopover(); renderInventory(); saveState(state);
+  // SELL mode
+  const sellBtn = e.target.closest('button[data-amt]');
+  if (sellBtn && elPopover.dataset.mode === 'sell'){
+    const id = elPopover.dataset.itemId; if(!id) return;
+    const have = state.inventory[id]||0; if(have<=0) return;
+    let amtAttr = sellBtn.getAttribute('data-amt');
+    let n = 0;
+    if(amtAttr==='custom'){ const input = elPopover.querySelector('#sellCustomAmt'); n = Math.floor(+input.value||0); }
+    else n = parseInt(amtAttr,10);
+    if(n===-1) n = have;
+    if(!Number.isFinite(n) || n<=0) return;
+    n = Math.min(n, have);
+    const value = sellPrice(id) * n;
+    removeItem(state, id, n);
+    addGold(state, value);
+    closePopover(); renderInventory(); saveState(state);
+    return;
+  }
+
+  // EQUIP mode
+  const eqBtn = e.target.closest('button[data-eq-amt]');
+  if (eqBtn && elPopover.dataset.mode === 'equip'){
+    const id = elPopover.dataset.equipId; if(!id) return;
+    const have = state.inventory[id]||0; if(have<=0) return;
+
+    let amtAttr = eqBtn.getAttribute('data-eq-amt');
+    let n = 0;
+    if(amtAttr==='custom'){ const input = elPopover.querySelector('#equipCustomAmt'); n = Math.floor(+input.value||0); }
+    else n = parseInt(amtAttr,10);
+    if(n===-1) n = have;
+    if(!Number.isFinite(n) || n<=0) return;
+    n = Math.min(n, have);
+
+    for (let i=0;i<n;i++){
+      equipItem(state, id);
+    }
+    closePopover();
+    renderInventory(); renderEquipment(); saveState(state);
+  }
 });
 
+// close popover globally
 document.addEventListener('click', (e)=>{
   const inside = e.target.closest('#popover');
   const isSell = e.target.closest('button.sell-btn');
-  if (!inside && !isSell) closePopover();
+  const isEquipQuick = e.target.closest('button.equip-quick');
+  if(!inside && !isSell && !isEquipQuick) closePopover();
 });
 document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closePopover(); });

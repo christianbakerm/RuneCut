@@ -4,6 +4,7 @@ import { listFishingSpots, isSpotUnlocked, canFish, startFish, finishFish } from
 import { qs, on } from '../utils/dom.js';
 import { pushLog } from './logs.js';
 import { renderInventory } from './inventory.js';
+import { renderEnchanting } from './enchanting.js';
 import { renderSkills } from './skills.js';
 import { ITEMS } from '../data/items.js';
 
@@ -104,6 +105,7 @@ on(document, 'click', '#fishBtn', ()=>{
     pushLog(`Caught ${itemName} at ${sp.name || sp.id} → +${xp} Fishing xp`, 'fishing');
     saveState(state);
     renderFishing();
+    renderEnchanting();
     renderInventory();
     renderSkills();
   }, Math.max(50, dur)); // tiny floor for safety

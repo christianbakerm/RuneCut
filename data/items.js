@@ -12,6 +12,16 @@ export const ITEMS = {
 
     // Materials
     wood_handle: { id:'wood_handle', name:'Wood Handle', type:'material', sell:2, img: 'assets/materials/handle.png' },
+    pages:  { id:'pages',  name:'Pages',  type:'resource', sell:0,  img:'assets/materials/pages.png' },
+    leather:{ id:'leather', name:'Leather', type:'resource', sell:4,  img:'assets/materials/leather.png' },
+    book:   { id:'book',   name:'Book',   type:'resource', sell:10, img:'assets/materials/book.png' },
+    forest_essence: {
+      id: 'forest_essence',
+      name: 'Forest Essence',
+      type: 'resource',
+      sell: 12,
+      img: 'assets/materials/forest-essence.png'
+    },
   
     // Tools
     axe_copper: { id:'axe_copper', name:'Copper Axe', type:'equipment', slot:'axe', speed:1.25, img:'assets/equipment/bronze-axe.png' },
@@ -88,6 +98,24 @@ export const ITEMS = {
     iron_sword:  { id:'iron_sword',  name:'Iron Sword',  type:'equipment', slot:'weapon', atk:16, str:12,  sell:40, img:'assets/equipment/bronze-sword.png',  tint:'iron' },
     iron_hammer: { id:'iron_hammer', name:'Iron Hammer', type:'equipment', slot:'weapon', atk:11,  str:25, sell:40, img:'assets/equipment/bronze-hammer.png',tint:'iron' },
 
+    // Enchanting
+    tome_forest_novice: {
+      id: 'tome_forest_novice',
+      name: 'Novice Forest Tome',
+      type: 'equipment',
+      slot: 'tome',
+      img: 'assets/materials/book.png',
+      tint:'forest',
+      sell: 25,
+      tome: {
+        kind: 'auto_gather',
+        skill: 'wc',               
+        resourceId: 'oak',         
+        minLevel: 1,               
+        baseSec: 15,               
+        maxSec: 30                 
+      }
+    },
 
     // Ingredients
     briar_oil:     { id:'briar_oil', name:'Briar Oil', type:'reagent', sell:5,  icon:'🛢️' },

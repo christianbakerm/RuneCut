@@ -9,6 +9,7 @@ export function defaultState(){
     wcXp: 0, fishXp: 0, minXp: 0,
     atkXp: 0, strXp: 0, defXp: 0,
     smithXp: 0, craftXp: 0, cookXp: 0,
+    enchantXp: 0,
 
     // Core data
     inventory: {},

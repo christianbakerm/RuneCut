@@ -7,6 +7,7 @@ import { buildXpTable, levelFromXp } from './xp.js';
 const XP_TABLE = buildXpTable();
 const speedFromLevel = (lvl)=> 1 + 0.03*(lvl-1);  // +3% per Woodcutting level
 const clampMs = (ms)=> Math.max(250, ms);         // floor so actions aren’t instant
+export const FOREST_ESSENCE_ID = 'forest_essence';
 
 /* ---------------- helpers ---------------- */
 export function listTrees(_state){
@@ -85,7 +86,9 @@ export function finishChop(state, treeOrId){
   if (!t){ state.action = null; return 0; }
 
   addItem(state, t.drop, 1);
+  const essence = Math.random() < 0.10;
+  if (essence) addItem(state, FOREST_ESSENCE_ID, 1);
   state.wcXp = (state.wcXp || 0) + (t.xp || 0);
   state.action = null;
-  return 1;
+  return { qty: 1, essence };
 }

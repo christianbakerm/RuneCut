@@ -31,7 +31,10 @@ export const MONSTERS = [
   id:'gutter_rat', name:'Gutter Rat', level:7, time:3400,
   hp:32, attack:11, defense:8, maxHit:5,
   xp:{attack:24,strength:24,defense:24},
-  drops:[ {gold:8, chance:0.7} ],
+  drops:[
+    { gold:8, chance:0.7},
+    { id: 'leather', chance: 0.5 }
+   ],
   img:'assets/monsters/gutter_rat.png'
   },
 
