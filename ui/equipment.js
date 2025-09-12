@@ -6,7 +6,7 @@ import { ITEMS } from '../data/items.js';
 import { derivePlayerStats, hpMaxFor } from '../systems/combat.js';
 import { MONSTERS } from '../data/monsters.js';
 import { renderInventory } from './inventory.js';
-import { ensureMana, manaMaxFor, startManaRegen } from '../systems/mana.js';
+import { ensureMana, manaMaxFor, startManaRegen, onManaChange } from '../systems/mana.js';
 import { ensureTomeEngine, tomeRemainingMs, tomeDurationMsFor } from '../systems/tomes.js';
 
 // DOM roots

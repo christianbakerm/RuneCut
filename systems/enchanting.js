@@ -2,6 +2,7 @@
 import { ENCHANT_RECIPES } from '../data/enchanting.js';
 import { addItem, removeItem } from './inventory.js';
 import { buildXpTable, levelFromXp } from './xp.js';
+import { recalcMana } from './mana.js';
 
 const XP = buildXpTable();
 const clampMs = (ms)=> Math.max(300, ms);
@@ -49,7 +50,6 @@ export function startEnchant(state, id, onDone){
 export function finishEnchant(state, id){
   const r = getRec(id) || getRec(state.action?.key);
   if (!r){ state.action = null; return null; }
-  // Re-check: do we still have everything?
   if (!canEnchant(state, r.id)){ state.action = null; return null; }
 
   // Spend inputs
@@ -59,6 +59,10 @@ export function finishEnchant(state, id){
   // Give outputs
   (r.outputs||[]).forEach(out => addItem(state, out.id, out.qty));
 
+  if (r?.xp?.skill === 'enchant' && r?.xp?.amount){
+    state.enchantXp = (state.enchantXp||0) + r.xp.amount;
+    recalcMana(state); // <- immediately reflect new Max Mana in UIs
+  }
   // Give XP
   if (r?.xp?.skill === 'enchant' && r?.xp?.amount){
     state.enchantXp = (state.enchantXp||0) + r.xp.amount;

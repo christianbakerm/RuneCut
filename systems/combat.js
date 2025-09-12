@@ -49,6 +49,8 @@ function sumEquip(state, key){
   return total;
 }
 
+function emitHpChange(){ try { window.dispatchEvent(new CustomEvent('hp:change')); } catch {} }
+
 export function hpMaxFor(state){
   const defLvl = levelFromXp(state.defXp, XP_TABLE);
   const hpGear = sumEquip(state, 'hp');
@@ -125,6 +127,7 @@ export function turnFight(state){
     const mitigation = Math.floor(ps.defBonus * BALANCE.dmgMitigationPerDef);
     dmg = Math.max(1, dmg - mitigation);
     state.hpCurrent = Math.max(0, state.hpCurrent - dmg);
+    emitHpChange();
     log.push(`${mon.name} hits you for ${dmg}.`);
   } else {
     log.push(`${mon.name} misses you.`);
@@ -134,6 +137,7 @@ export function turnFight(state){
 
   if(state.hpCurrent<=0){
     state.hpCurrent = 1; // You survive at 1 HP
+    emitHpChange();
     const result = { done:true, win:false, log:[...log, `You were defeated by ${mon.name}.`] };
     state.combat = null;
     state.__lastFightXp = { atk:0, str:0, def:0 };

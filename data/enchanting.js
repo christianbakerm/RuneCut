@@ -13,6 +13,6 @@ export const ENCHANT_RECIPES = {
       outputs: [
         { id: 'tome_forest_novice', qty: 1 }
       ],
-      xp: { skill: 'enchant', amount: 15 }
+      xp: { skill: 'enchant', amount: 25 }
     }
   };

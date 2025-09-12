@@ -115,6 +115,25 @@ function initialPaint(){
   renderPanelLogs();
 }
 
+// ---- render after gaining an item --------------------------------------------
+export function renderAllSkillingPanels(){
+  renderWoodcutting?.();
+  renderCrafting?.();
+  renderSmithing?.();
+  renderEnchanting?.();
+  renderFishing?.();
+  renderCooking?.();
+  renderMining?.();
+  renderInventory?.();
+  renderEquipment?.();
+  renderSkills?.();
+}
+
+// Listen once: whenever addItem or removeItem fires the event, refresh all skilling panels
+window.addEventListener('inventory:change', () => {
+  renderAllSkillingPanels();
+});
+
 // ---- single RAF loop: progress bars + passive HP regen ----------------------
 let rafId = 0;
 let last = performance.now();
@@ -168,7 +187,7 @@ function tick(){
       if (whole > 0){
         state.hpCurrent = Math.min(maxHp, state.hpCurrent + whole);
         regenCarry -= whole / rate;
-        // Only combat/character bits need repaint on regen
+        renderEquipment();
         renderCombat();
       }
     }
