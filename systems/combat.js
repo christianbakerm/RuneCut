@@ -9,8 +9,8 @@ const BALANCE = {
   // Player ratings
   atkLevelWeight: 3.0,   // how much Attack level feeds accuracy
   atkGearWeight:  2.5,   // how much +Atk gear feeds accuracy
-  strLevelWeight: 0.75,  // how much Strength level feeds max hit
-  strGearWeight:  1.00,  // how much +Str gear feeds max hit
+  strLevelWeight: 0.5,  // how much Strength level feeds max hit
+  strGearWeight:  0.5,  // how much +Str gear feeds max hit
 
   // Accuracy curves
   accBase:   0.15,       // flat base hit chance
@@ -28,10 +28,10 @@ const BALANCE = {
   hpGearWeight: 2.0,
 
   // Minor extra tie-in: a bit of Attack into max hit
-  maxHitAtkWeight: 0.2,
+  maxHitAtkWeight: 0.1,
 
   // Damage mitigation from your defense gear (per point)
-  dmgMitigationPerDef: 0.15
+  dmgMitigationPerDef: 0.05
 };
 
 function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }

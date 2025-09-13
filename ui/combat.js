@@ -3,37 +3,42 @@ import { state, saveState } from '../systems/state.js';
 import { MONSTERS } from '../data/monsters.js';
 import { beginFight, turnFight, hpMaxFor, derivePlayerStats } from '../systems/combat.js';
 import { qs, on } from '../utils/dom.js';
-import { pushCombatLog, renderPanelLogs } from './logs.js';
 import { renderInventory } from './inventory.js';
 import { renderEquipment } from './equipment.js';
 import { renderSkills } from './skills.js';
 import { ensureMana, manaMaxFor, startManaRegen } from '../systems/mana.js';
-import { ITEMS } from '../data/items.js';
+import { ITEMS } from '../data/items.js'; // for food heal values
 
-const el = {
-  monsterSelect:  qs('#monsterSelect'),
-  trainingSelect: qs('#trainingSelect'),
-  fightBtn:       qs('#fightBtn'),
-  attackBtn:      qs('#attackTurnBtn'),
-  fleeBtn:        qs('#fleeBtn'),
+const overlayEls = {
+  overlay:       qs('#combatOverlay'),
+  close:         qs('#closeCombat'),
+
+  // Actions (no "-Overlay" suffix in HTML)
+  fightBtn:      qs('#fightBtn'),
+  eatBtn:        qs('#attackTurnBtn'), // repurposed "Attack" button to Eat
+  fleeBtn:       qs('#fleeBtn'),
+  training:      qs('#trainingSelect'),
+
+  // Log
+  log:           qs('#combatLog'),
 
   // Monster card
-  monImg:         qs('#monsterImg'),
-  monNameCard:    qs('#monsterCardName'),
-  monLvlCard:     qs('#monsterCardLevel'),
-  monStatsCard:   qs('#monsterCardStats'),
+  monImg:        qs('#monsterImg'),
+  monName:       qs('#monsterCardName'),
+  monLvl:        qs('#monsterCardLevel'),
+  monStats:      qs('#monsterCardStats'),
 
   // HUD
-  playerHpBar:    qs('#playerHpBar'),
-  playerHpVal:    qs('#playerHpVal'),
-  playerManaBar:  qs('#playerManaBar'),
-  playerManaVal:  qs('#playerManaVal'),
-  monHpBar:       qs('#monHpBar'),
-  monHpVal:       qs('#monHpVal'),
-  monNameHud:     qs('#monName'),
+  playerHpBar:   qs('#playerHpBar'),
+  playerHpVal:   qs('#playerHpVal'),
+  playerManaBar: qs('#playerManaBar'),
+  playerManaVal: qs('#playerManaVal'),
+  monHpBar:      qs('#monHpBar'),
+  monHpVal:      qs('#monHpVal'),
+  monNameHud:    qs('#monName'),
 };
 
-// ----- cooldown control -----
+// ----- cooldown control for combat turns (unchanged) -----
 const ATK_COOLDOWN_MS = 500;
 let atkCooldownUntil = 0;
 const nowMs = () => performance.now();
@@ -45,18 +50,14 @@ function pulse(el, cls, ms=300){
   setTimeout(()=>el.classList.remove(cls), ms);
 }
 
-// Big floating numbers (relies on CSS for .floating-dmg, .dealt, .taken, .crit, .miss, .block)
+// Floating numbers
 function bubbleDamage(anchorBarEl, amount, kind='dealt', {crit=false, slam=false, text=null} = {}){
   if (!anchorBarEl) return;
-
-  // Prefer the element *outside* the .progress pill to avoid clipping.
   const progress = anchorBarEl.closest('.progress');
   let host = progress?.parentElement || anchorBarEl.parentElement || anchorBarEl;
 
-  // Ensure the host can position children absolutely and isn't clipped.
   const cs = host ? getComputedStyle(host) : null;
   if (host && cs && cs.position === 'static') host.style.position = 'relative';
-  // If the host itself clips, try one more level up.
   if (host && cs && (cs.overflow === 'hidden' || cs.overflowX === 'hidden' || cs.overflowY === 'hidden')) {
     host = host.parentElement || host;
     const cs2 = getComputedStyle(host);
@@ -70,8 +71,13 @@ function bubbleDamage(anchorBarEl, amount, kind='dealt', {crit=false, slam=false
   d.addEventListener('animationend', ()=> d.remove(), { once:true });
 }
 
+// Small helper for healing bubbles
+function bubbleHeal(anchorBarEl, amount){
+  bubbleDamage(anchorBarEl, amount, 'heal', { text: `+${amount}` });
+}
+
 function currentMonster(){
-  const id = state.selectedMonsterId || el.monsterSelect?.value;
+  const id = state.selectedMonsterId;
   return MONSTERS.find(m=>m.id===id) || MONSTERS[0] || null;
 }
 
@@ -81,89 +87,134 @@ function setBar(bar, label, cur, max){
   if (label) label.textContent = `${cur}/${max}`;
 }
 
-function ensureSelection(){
-  if (!el.monsterSelect) return;
-  el.monsterSelect.innerHTML = (MONSTERS||[]).map(m=>
-    `<option value="${m.id}">${m.name} (Lv ${m.level ?? 1})</option>`
-  ).join('');
-  const want = state.selectedMonsterId || (MONSTERS[0]?.id);
-  el.monsterSelect.value = want;
-  state.selectedMonsterId = el.monsterSelect.value;
+/* ---------------- Eating helpers ---------------- */
+function healAmountForBase(baseId){
+  const def = ITEMS[baseId] || {};
+  return Number.isFinite(def.heal) ? def.heal : 0;
+}
+
+function canEat(){
+  const slots = state.equipment || {};
+  const base  = slots.food;
+  const qty   = Math.max(0, slots.foodQty|0);
+  if (!base || qty <= 0) return false;
+  const heal = healAmountForBase(base);
+  if (heal <= 0) return false;
+  const max = hpMaxFor(state);
+  return (state.hpCurrent ?? max) < max;
+}
+
+function doEatOnce(){
+  const slots = state.equipment || {};
+  const base  = slots.food;
+  let qty     = Math.max(0, slots.foodQty|0);
+  if (!base || qty <= 0) return false;
+
+  const heal = healAmountForBase(base);
+  if (heal <= 0) return false;
+
+  const max = hpMaxFor(state);
+  const cur = state.hpCurrent == null ? max : state.hpCurrent;
+  if (cur >= max) return false;
+
+  const def = ITEMS[base] || {};
+  const name = def.name || base;
+
+  const healed = Math.min(heal, max - cur);
+  state.hpCurrent = Math.min(max, cur + heal);
+  qty -= 1;
+  slots.foodQty = Math.max(0, qty);
+  if (slots.foodQty === 0){
+    slots.food = '';
+  }
+
+  // FX + log
+  pulse(overlayEls.playerHpBar, 'flash-heal', 350);
+  bubbleHeal(overlayEls.playerHpBar, healed);
+  if (overlayEls.log){
+    const line = document.createElement('div');
+    line.textContent = `You eat ${name} and heal ${healed} HP.`;
+    overlayEls.log.appendChild(line);
+    overlayEls.log.scrollTop = overlayEls.log.scrollHeight;
+  }
+
+  // Broadcast & UI refresh
+  try { window.dispatchEvent(new Event('hp:change')); } catch {}
+  try { window.dispatchEvent(new Event('food:change')); } catch {}
+  renderEquipment();
+  renderCombat();
+  saveState(state);
+  return true;
+}
+
+/* ---------------- HUD paint ---------------- */
+function paintHud(){
+  // Player
+  const maxHp = hpMaxFor(state);
+  if (state.hpCurrent == null) state.hpCurrent = maxHp;
+  const curHp = Math.max(0, Math.min(maxHp, state.hpCurrent));
+  setBar(overlayEls.playerHpBar, overlayEls.playerHpVal, curHp, maxHp);
+
+  ensureMana(state);
+  const maxMp = manaMaxFor(state);
+  const curMp = Math.max(0, Math.min(maxMp, state.manaCurrent));
+  setBar(overlayEls.playerManaBar, overlayEls.playerManaVal, curMp, maxMp);
+
+  // Monster (selected or active)
+  const active = state.combat;
+  const mon = active ? MONSTERS.find(m=>m.id===active.monsterId) : currentMonster();
+  const monMax = active ? (mon?.hp ?? 20) : (mon?.hp ?? 0);
+  const monCur = active ? Math.max(0, state.combat.monHp) : monMax;
+  setBar(overlayEls.monHpBar, overlayEls.monHpVal, monCur, monMax);
+  if (overlayEls.monNameHud) overlayEls.monNameHud.textContent = mon?.name || '—';
+
+  // Buttons
+  const inFight = !!state.combat;
+
+  // Start Fight is disabled in-fight or if no monster
+  if (overlayEls.fightBtn)  overlayEls.fightBtn.disabled  = inFight || !mon;
+
+  // Eat button: enable when canEat(), regardless of combat cooldowns
+  if (overlayEls.eatBtn){
+    overlayEls.eatBtn.disabled = !canEat();
+    overlayEls.eatBtn.classList.toggle('cooldown', false);
+    overlayEls.eatBtn.setAttribute('title', canEat() ? 'Eat food to heal' : 'Nothing to eat or HP is full');
+  }
+
+  // Flee only enabled during a fight
+  if (overlayEls.fleeBtn)   overlayEls.fleeBtn.disabled   = !inFight;
 }
 
 function paintMonsterCard(mon){
   if (!mon) return;
-  if (el.monImg)  { el.monImg.src = mon.img || ''; el.monImg.alt = mon.name || mon.id; }
-  if (el.monNameCard) el.monNameCard.textContent = mon.name || mon.id;
-  if (el.monLvlCard)  el.monLvlCard.textContent  = String(mon.level ?? 1);
+  if (overlayEls.monImg)  { overlayEls.monImg.src = mon.img || ''; overlayEls.monImg.alt = mon.name || mon.id; }
+  if (overlayEls.monName) overlayEls.monName.textContent = mon.name || mon.id;
+  if (overlayEls.monLvl)  overlayEls.monLvl.textContent  = String(mon.level ?? 1);
 
   const statsBits = [];
   if (Number.isFinite(mon.hp))      statsBits.push(`HP ${mon.hp}`);
   if (Number.isFinite(mon.attack))  statsBits.push(`Atk ${mon.attack}`);
   if (Number.isFinite(mon.defense)) statsBits.push(`Def ${mon.defense}`);
   if (Number.isFinite(mon.maxHit))  statsBits.push(`Max ${mon.maxHit}`);
-  el.monStatsCard && (el.monStatsCard.textContent = statsBits.join(' · ') || '—');
-}
-
-function paintHud(){
-  // Player
-  const maxHp = hpMaxFor(state);
-  if (state.hpCurrent == null) state.hpCurrent = maxHp;
-  const curHp = Math.max(0, Math.min(maxHp, state.hpCurrent));
-  setBar(el.playerHpBar, el.playerHpVal, curHp, maxHp);
-  ensureMana(state);
-  const maxMp = manaMaxFor(state);
-  const curMp = Math.max(0, Math.min(maxMp, state.manaCurrent));
-  setBar(el.playerManaBar, el.playerManaVal, curMp, maxMp);
-
-  // Monster (selected or active)
-  const active = state.combat;
-  const mon = active ? MONSTERS.find(m=>m.id===active.monsterId) : currentMonster();
-
-  const monMax = active ? (mon?.hp ?? 20) : (mon?.hp ?? 0);
-  const monCur = active ? Math.max(0, state.combat.monHp) : monMax;
-  setBar(el.monHpBar, el.monHpVal, monCur, monMax);
-  if (el.monNameHud) el.monNameHud.textContent = mon?.name || '—';
-
-  // Buttons
-  const inFight = !!state.combat;
-  const inCooldown = nowMs() < atkCooldownUntil;
-  if (el.fightBtn)  el.fightBtn.disabled  = inFight || !mon;
-  if (el.attackBtn) {
-    // Delegate enable/disable to the eat-button logic only
-    updateEatBtn();
-  }
-  if (el.fleeBtn)   el.fleeBtn.disabled   = !inFight;
-}
-
-function paintCharVsSelected(){
-  const mon = currentMonster();
-  const ps = derivePlayerStats(state, mon);
-  const accEl = qs('#charAcc');
-  if (accEl && ps?.acc != null) accEl.textContent = `${Math.round(ps.acc*100)}%`;
+  if (overlayEls.monStats) overlayEls.monStats.textContent = statsBits.join(' · ') || '—';
 }
 
 export function renderCombat(){
-  ensureSelection();
-  const mon = currentMonster();
   ensureMana(state);
   startManaRegen(state, ()=>{
     saveState(state);
     const maxMp = manaMaxFor(state);
-    setBar(el.playerManaBar, el.playerManaVal, state.manaCurrent, maxMp);
+    setBar(overlayEls.playerManaBar, overlayEls.playerManaVal, state.manaCurrent, maxMp);
   });
-  paintMonsterCard(mon);
   paintHud();
-  paintCharVsSelected();
 }
 
-/* ---------- Auto-fight loop ---------- */
+/* ---------- Auto-fight loop (unchanged) ---------- */
 let fightLoop = null;
 function stopFightLoop(){
   if (fightLoop) { clearInterval(fightLoop); fightLoop = null; }
 }
 
-// Parse & apply FX for a single turn’s log lines
 function applyTurnFx(logs){
   const parseDamage = (line)=> {
     const m = /for\s+(\d+)/i.exec(line||'');
@@ -184,24 +235,23 @@ function applyTurnFx(logs){
   // Enemy takes damage from you
   if (dmgMon != null){
     const crit = hasCrit(youHitLine);
-    pulse(el.monHpBar, 'flash-dmg', 350);
-    pulse(el.monImg, 'shake', 250);
-    bubbleDamage(el.monHpBar, dmgMon, 'dealt', { crit });
+    pulse(overlayEls.monHpBar, 'flash-dmg', 350);
+    bubbleDamage(overlayEls.monHpBar, dmgMon, 'dealt', { crit });
   } else if (youMissLine){
-    bubbleDamage(el.monHpBar, 0, 'miss', { text:'Miss' });
+    bubbleDamage(overlayEls.monHpBar, 0, 'miss', { text:'Miss' });
   } else if (monBlockLn){
-    bubbleDamage(el.monHpBar, 0, 'block', { text:'Block' });
+    bubbleDamage(overlayEls.monHpBar, 0, 'block', { text:'Block' });
   }
 
   // You take damage from enemy
   if (dmgYou != null){
     const crit = hasCrit(monHitLine);
-    pulse(el.playerHpBar, 'flash-dmg', 350);
-    bubbleDamage(el.playerHpBar, dmgYou, 'taken', { crit, slam:true });
+    pulse(overlayEls.playerHpBar, 'flash-dmg', 350);
+    bubbleDamage(overlayEls.playerHpBar, dmgYou, 'taken', { crit, slam:true });
   } else if (monMissLine){
-    bubbleDamage(el.playerHpBar, 0, 'miss', { text:'Miss' });
+    bubbleDamage(overlayEls.playerHpBar, 0, 'miss', { text:'Miss' });
   } else if (youBlockLn){
-    bubbleDamage(el.playerHpBar, 0, 'block', { text:'Block' });
+    bubbleDamage(overlayEls.playerHpBar, 0, 'block', { text:'Block' });
   }
 }
 
@@ -209,7 +259,13 @@ function applyTurnFx(logs){
 function runCombatTurn(){
   const result = turnFight(state);
   const logs = result?.log || [];
-  logs.forEach(line => pushCombatLog(line));
+
+  logs.forEach(line => {
+    const div = document.createElement('div');
+    div.textContent = line;
+    overlayEls.log.appendChild(div);
+    overlayEls.log.scrollTop = overlayEls.log.scrollHeight;
+  });
   applyTurnFx(logs);
 
   // Apply cooldown immediately
@@ -217,16 +273,19 @@ function runCombatTurn(){
 
   renderCombat();
   renderEquipment();
-  renderPanelLogs();
 
   if (result?.done){
     if (result.win){
       const xp = result.xp || { atk:0, str:0, def:0 };
       const loot = result.loot || [];
-      pushCombatLog(`Victory! XP — Atk +${xp.atk||0}, Str +${xp.str||0}, Def +${xp.def||0}.`);
-      if (loot.length) pushCombatLog(`Loot: ${loot.join(', ')}`);
+      overlayEls.log.appendChild(Object.assign(document.createElement('div'),{
+        textContent: `Victory! XP — Atk +${xp.atk||0}, Str +${xp.str||0}, Def +${xp.def||0}.`
+      }));
+      if (loot.length) overlayEls.log.appendChild(Object.assign(document.createElement('div'),{
+        textContent: `Loot: ${loot.join(', ')}`
+      }));
     } else {
-      pushCombatLog(`You were defeated.`);
+      overlayEls.log.appendChild(Object.assign(document.createElement('div'),{textContent: `You were defeated.`}));
     }
     saveState(state);
     renderInventory();
@@ -249,117 +308,116 @@ function startFightLoop(){
   }, ATK_COOLDOWN_MS);
 }
 
-/* ----------------- Eating ----------------- */
-function healAmountForBase(base){
-  const def = ITEMS[base] || {};
-  return Number.isFinite(def.heal) ? def.heal : 0;
-}
+/* ----------------- Overlay Control ----------------- */
+function openCombat(mon){
+  if (!overlayEls.overlay) return;
 
-function eatFromFoodSlot(){
-  const eq   = state.equipment || {};
-  const base = eq.food;
-  const qty  = Math.max(0, eq.foodQty|0);
-  if (!base || qty <= 0) return;
-
-  const heal = healAmountForBase(base);
-  if (heal <= 0) return;
-
-  const max = hpMaxFor(state);
-  const before = Math.max(0, Math.min(max, state.hpCurrent ?? max));
-  if (before >= max) return; // no overheal
-
-  const after = Math.min(max, before + heal);
-  state.hpCurrent = after;
-
-  eq.foodQty = qty - 1;
-  if (eq.foodQty <= 0) { eq.food = ''; }
-
-  // Log + repaint
-  try {
-    const name = (ITEMS[base]?.name) || base;
-    pushCombatLog(`You eat ${name} and heal ${after - before} HP.`);
-    renderPanelLogs?.();
-  } catch {}
-
-  renderEquipment();
-  renderInventory?.();
+  // Select & paint monster
+  state.selectedMonsterId = mon.id;
   saveState(state);
 
-  // notify other UIs
-  window.dispatchEvent(new Event('hp:change'));
-  window.dispatchEvent(new Event('food:change'));
-}
+  paintMonsterCard(mon);
 
-function updateEatBtn(){
-  const btn = el.attackBtn; if (!btn) return;
-  const eq   = state.equipment || {};
-  const base = eq.food;
-  const qty  = Math.max(0, eq.foodQty|0);
-  const heal = base ? healAmountForBase(base) : 0;
-  const max  = hpMaxFor(state);
-  const cur  = Math.max(0, Math.min(max, state.hpCurrent ?? max));
+  // Sync training style UI
+  if (overlayEls.training) {
+    overlayEls.training.value = state.trainingStyle || 'shared';
+  }
 
-  btn.textContent = qty > 0 ? `Eat (×${qty})` : 'Eat';
-  btn.title = 'Eat one from your equipped food stack';
-  const disabled = !(qty > 0 && heal > 0 && cur < max);
-  btn.disabled = disabled;
-  btn.classList.toggle('disabled', disabled);
-}
+  // Clear log and show
+  if (overlayEls.log) overlayEls.log.innerHTML = '';
 
-
-/* ----------------- Wiring ----------------- */
-
-on(document, 'change', '#monsterSelect', ()=>{
-  state.selectedMonsterId = el.monsterSelect.value;
-  saveState(state);
+  overlayEls.overlay.classList.remove('hidden');
   renderCombat();
-  renderEquipment(); // keep "Accuracy vs Selected" pill fresh
-});
-
-on(document, 'change', '#trainingSelect', ()=>{
-  state.trainingStyle = el.trainingSelect.value || 'shared';
-  saveState(state);
-  pushCombatLog?.(`Training style set to ${state.trainingStyle}.`);
-  renderPanelLogs();
-});
-
-el.fightBtn?.addEventListener('click', ()=>{
-  const mon = currentMonster();
-  if (!mon || state.combat) return;
-  beginFight(state, mon.id);
-  pushCombatLog?.(`You engage ${mon.name}!`);
-  saveState(state);
-  renderCombat();
-  renderPanelLogs();
-  renderEquipment();
-  startFightLoop(); // ⟵ start auto-attacks every 0.5s
-});
-
-// Change label immediately
-if (el.attackBtn) {
-  el.attackBtn.textContent = 'Eat';
-  el.attackBtn.title = 'Eat one from your equipped food stack';
 }
 
-el.attackBtn?.addEventListener('click', (e)=>{
-  e.preventDefault();
-  eatFromFoodSlot();
-});
-
-window.addEventListener('hp:change',   updateEatBtn);
-window.addEventListener('food:change', updateEatBtn);
-document.addEventListener('DOMContentLoaded', updateEatBtn);
-updateEatBtn();
-
-
-el.fleeBtn?.addEventListener('click', ()=>{
-  if (!state.combat) return;
-  const mon = MONSTERS.find(m=>m.id===state.combat.monsterId);
-  pushCombatLog?.(`You fled from ${mon?.name || state.combat.monsterId}.`);
+function closeCombat(){
+  overlayEls.overlay?.classList.add('hidden');
   state.combat = null;
   saveState(state);
   stopFightLoop();
+}
+
+// Close button
+overlayEls.close?.addEventListener('click', closeCombat);
+
+// Backdrop click (don’t close when clicking inside the box)
+overlayEls.overlay?.addEventListener('click', (e)=>{
+  if (e.target === overlayEls.overlay) closeCombat();
+});
+
+// ESC to close
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !overlayEls.overlay.classList.contains('hidden')) closeCombat();
+});
+
+// Training style
+overlayEls.training?.addEventListener('change', ()=>{
+  state.trainingStyle = overlayEls.training.value || 'shared';
+  saveState(state);
+});
+
+/* ----------------- Buttons ----------------- */
+overlayEls.fightBtn?.addEventListener('click', ()=>{
+  const mon = currentMonster();
+  if (!mon || state.combat) return;
+  beginFight(state, mon.id);
+  overlayEls.log.appendChild(Object.assign(document.createElement('div'),{textContent:`You engage ${mon.name}!`}));
+  saveState(state);
   renderCombat();
   renderEquipment();
-  renderPanelLogs();
+  startFightLoop(); // auto-attacks every 0.5s
+});
+
+// Eat button (formerly Attack)
+overlayEls.eatBtn?.addEventListener('click', ()=>{
+  // Eating is allowed both in and out of combat as long as canEat() is true
+  if (!canEat()) return;
+  doEatOnce();
+});
+
+// Flee
+overlayEls.fleeBtn?.addEventListener('click', ()=>{
+  if (!state.combat) return;
+  const mon = MONSTERS.find(m=>m.id===state.combat.monsterId);
+  overlayEls.log.appendChild(Object.assign(document.createElement('div'),{textContent:`You fled from ${mon?.name || state.combat.monsterId}.`}));
+  closeCombat();
+});
+
+/* ----------------- Monster Grid & Zones ----------------- */
+function renderMonsterGrid(zone) {
+  const grid = document.querySelector('#monsterGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const monsters = MONSTERS.filter(m => m.zone === zone);
+  monsters.forEach(mon => {
+    const card = document.createElement('div');
+    card.className = 'monster-choice';
+    card.dataset.id = mon.id;
+    card.innerHTML = `
+      <img src="${mon.img || ''}" alt="${mon.name}">
+      <div class="title">${mon.name}</div>
+      <div class="muted">Lv ${mon.level}</div>
+    `;
+    card.addEventListener('click', ()=> openCombat(mon));
+    grid.appendChild(card);
+  });
+}
+
+function setupZones() {
+  const map = document.querySelector('#combatMap');
+  if (!map) return;
+  map.querySelectorAll('.zone-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      map.querySelectorAll('.zone-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderMonsterGrid(btn.dataset.zone);
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupZones();
+  const firstZone = document.querySelector('.zone-btn')?.dataset.zone;
+  if (firstZone) renderMonsterGrid(firstZone);
 });
