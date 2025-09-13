@@ -2,12 +2,13 @@
 import { state, saveState } from '../systems/state.js';
 import { qs, on } from '../utils/dom.js';
 import { renderInventory } from './inventory.js';
-import { renderCrafting } from './crafting.js'
+import { renderCrafting } from './crafting.js';
 import { pushLog } from './logs.js';
 import { renderSkills } from './skills.js';
-import { listTrees, canChop, startChop, finishChop } from '../systems/woodcutting.js';
+import { listTrees, canChop } from '../systems/woodcutting.js';
 import { ITEMS } from '../data/items.js';
 import { renderEnchanting } from './enchanting.js';
+import { startAfk } from '../systems/afk.js';
 
 const el = {
   treeList:   qs('#treeList') || qs('#forestList'),
@@ -34,69 +35,77 @@ function canLevelOnly(t){
   return canChop({ ...state, action: null }, t);
 }
 
+let AFK_WC_ON = false;
+
+function updateActionLabel(){
+  if (!el.actionLbl) return;
+  if (state.action?.type === 'chop') {
+    el.actionLbl.textContent = 'Chopping…';
+  } else {
+    el.actionLbl.textContent = AFK_WC_ON ? 'Auto-chopping…' : 'Idle';
+  }
+}
+
 export function renderWoodcutting(){
-    const list = trees();
-    if (!list.length) return;
-  
-    // Compute a *valid & enabled* selection up-front.
-    const has = id => list.some(t => t.id === id);
-    const can = t => canChop(state, t);
-  
-    let selId = state.selectedTreeId && has(state.selectedTreeId)
-      ? state.selectedTreeId
-      : null;
-  
-    let selTree = selId ? list.find(t => t.id === selId) : null;
-  
-    // If current selection is missing or *locked*, pick first accessible.
-    if (!selTree || !canLevelOnly(selTree)) {
-      selTree = list.find(canLevelOnly) || list[0];
-      if (selTree && selTree.id !== state.selectedTreeId) {
-        state.selectedTreeId = selTree.id;
-        saveState(state);
-      }
+  const list = trees();
+  if (!list.length) return;
+
+  // Compute a *valid & enabled* selection up-front.
+  const has = id => list.some(t => t.id === id);
+
+  let selId = state.selectedTreeId && has(state.selectedTreeId)
+    ? state.selectedTreeId
+    : null;
+
+  let selTree = selId ? list.find(t => t.id === selId) : null;
+
+  // If current selection is missing or *locked*, pick first accessible.
+  if (!selTree || !canLevelOnly(selTree)) {
+    selTree = list.find(canLevelOnly) || list[0];
+    if (selTree && selTree.id !== state.selectedTreeId) {
+      state.selectedTreeId = selTree.id;
+      saveState(state);
     }
-    selId = selTree?.id;
-  
-    // --- Tiles ---
-    if (el.treeList){
-      el.treeList.innerHTML = list.map(t=>{
-        const ok = canLevelOnly(t);
-        const isSel = t.id === selId;
-        return `
-          <button class="tree ${ok?'':'disabled locked'} ${isSel?'active selected':''}"
-                  data-id="${t.id}" ${ok?'':'disabled aria-disabled="true"'}
-                  title="${ok ? '' : `Requires Lv ${t.level||1}`}">
-            <span class="name">${t.name || t.id}</span>
-            <small class="io">Lv ${t.level||1}${t.baseTime?` · ${Math.round(t.baseTime/1000)}s`:''}</small>
-          </button>`;
-      }).join('');
+  }
+  selId = selTree?.id;
+
+  // --- Tiles ---
+  if (el.treeList){
+    el.treeList.innerHTML = list.map(t=>{
+      const ok = canLevelOnly(t);
+      const isSel = t.id === selId;
+      return `
+        <button class="tree ${ok?'':'disabled locked'} ${isSel?'active selected':''}"
+                data-id="${t.id}" ${ok?'':'disabled aria-disabled="true"'}
+                title="${ok ? '' : `Requires Lv ${t.level||1}`}">
+          <span class="name">${t.name || t.id}</span>
+          <small class="io">Lv ${t.level||1}${t.baseTime?` · ${Math.round(t.baseTime/1000)}s`:''}</small>
+        </button>`;
+    }).join('');
+  }
+
+  // --- Dropdown ---
+  if (el.treeSelect){
+    el.treeSelect.innerHTML = list.map(t=>{
+      const ok = canLevelOnly(t);
+      const selAttr = t.id === selId ? 'selected' : '';
+      const disAttr = ok ? '' : 'disabled';
+      return `<option value="${t.id}" ${selAttr} ${disAttr}>
+        ${t.name || t.id} ${ok ? '' : `(Lv ${t.level||1})`}
+      </option>`;
+    }).join('');
+
+    if (!el.treeSelect.value || el.treeSelect.options[el.treeSelect.selectedIndex]?.disabled) {
+      el.treeSelect.value = selId;
     }
-  
-    // --- Dropdown ---
-    if (el.treeSelect){
-      el.treeSelect.innerHTML = list.map(t=>{
-        const ok = canLevelOnly(t);
-        const selAttr = t.id === selId ? 'selected' : '';
-        const disAttr = ok ? '' : 'disabled';
-        return `<option value="${t.id}" ${selAttr} ${disAttr}>
-          ${t.name || t.id} ${ok ? '' : `(Lv ${t.level||1})`}
-        </option>`;
-      }).join('');
-  
-      if (!el.treeSelect.value || el.treeSelect.options[el.treeSelect.selectedIndex]?.disabled) {
-        el.treeSelect.value = selId;
-      }
-  
-      el.treeSelect.disabled = false;
-      el.treeSelect.style.pointerEvents = 'auto';
-      void el.treeSelect.offsetWidth;
-    }
-  
-    if (el.actionLbl && (!state.action || state.action.type !== 'chop')){
-      el.actionLbl.textContent = 'Idle';
-    }
-  }  
+
+    el.treeSelect.disabled = false;
+    el.treeSelect.style.pointerEvents = 'auto';
+    void el.treeSelect.offsetWidth;
+  }
+
+  updateActionLabel();
+}
 
 /* ---------- interactions ---------- */
 
@@ -127,34 +136,54 @@ on(document, 'change', '#treeSelect, #wcTreeSelect', ()=>{
   renderWoodcutting();
 });
 
-// Chop (robust: auto-fallback to an accessible tree)
+// Chop → start AFK session (switches from other skills & restarts timer)
 on(document, 'click', '#chopBtn, #wcChopBtn, .chop-btn', ()=>{
-  tryStartChop();
-});
-
-function tryStartChop(){
-  // If we're already chopping, do nothing. Keep the current selection.
-  if (state.action?.type === 'chop') {
-    if (el.actionLbl) el.actionLbl.textContent = 'Chopping…';
-    return;
-  }
-
   const t = currentTree();
   if (!t) return;
-  const ok = startChop(state, t, ()=>{
-    const res = finishChop(state, t);
-    const itemName = ITEMS[t.drop]?.name || t.drop;
-    const xp = t.xp || 0;
-    const essTxt = res?.essence ? ` · +1 ${ITEMS['forest_essence']?.name || 'Forest Essence'}` : '';
-    pushLog(`Chopped ${t.name || t.id} → +1 ${itemName}${essTxt} · Forestry +${xp} xp`, 'wc');    saveState(state);
-    renderWoodcutting();
-    renderInventory();
-    renderEnchanting();
-    renderCrafting();
-    renderSkills();
-  });
+  startAfk(state, { skill:'forestry', targetId: t.id });
+});
 
-  if (ok) renderWoodcutting();
-}
+/* ---------- AFK hooks (generic) ---------- */
 
+// Show our HUD label when forestry AFK is active
+window.addEventListener('afk:start', (e)=>{
+  AFK_WC_ON = e?.detail?.skill === 'forestry';
+  updateActionLabel();
+});
 
+// Clear HUD label when AFK ends
+window.addEventListener('afk:end', ()=>{
+  AFK_WC_ON = false;
+  updateActionLabel();
+});
+
+// If another skill takes over, stop showing auto label
+window.addEventListener('afk:switch', (e)=>{
+  if (e?.detail?.name !== 'forestry'){
+    AFK_WC_ON = false;
+    updateActionLabel();
+  }
+});
+
+// Log each AFK chop using the same message format
+window.addEventListener('afk:cycle', (e)=>{
+  const d = e?.detail; if (!d || d.skill !== 'forestry') return;
+  const itemName = ITEMS[d.dropId]?.name || d.dropId;
+  const treeName = d.targetName || d.targetId;
+  const essTxt   = d.essence ? ` · +1 ${ITEMS['forest_essence']?.name || 'Forest Essence'}` : '';
+  const xp       = d.xp|0;
+
+  pushLog(`Chopped ${treeName} → +1 ${itemName}${essTxt} · Forestry +${xp} xp`, 'wc');
+  saveState(state);
+  renderWoodcutting();
+  renderInventory();
+  renderEnchanting();
+  renderCrafting();
+  renderSkills();
+});
+
+/* ---------- lightweight HUD refresh loop ---------- */
+(function raf(){
+  updateActionLabel();
+  requestAnimationFrame(raf);
+})();

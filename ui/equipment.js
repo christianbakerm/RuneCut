@@ -28,6 +28,15 @@ const elMpLbl  = qs('#charManaLabel');
       background:rgba(0,0,0,.65); color:#fff; border-radius:10px;
       pointer-events:none;
     }
+    /* Eat button for the food slot (hover-reveal) */
+    #equipmentGrid .slot .eat-btn{
+      position:absolute; left:4px; bottom:4px;
+      font-size:11px; line-height:14px; padding:2px 6px;
+      opacity:0; pointer-events:none; transition:opacity .15s ease;
+    }
+    #equipmentGrid .slot:hover .eat-btn{
+      opacity:1; pointer-events:auto;
+    }
   `;
   document.head.appendChild(css);
 })();
@@ -61,7 +70,8 @@ function fallbackIcon(slot){
     head:'🪖', cape:'🧣', amulet:'📿',
     weapon:'🗡️', body:'🧥', shield:'🛡️',
     gloves:'🧤', legs:'👖', boots:'🥾',
-    ring:'💍', axe:'🪓', pick:'⛏️', tome:'📖'
+    ring:'💍', axe:'🪓', pick:'⛏️', tome:'📖',
+    food:'🍖', fishing: '🎣'
   };
   return map[slot] || '⬜';
 }
@@ -102,6 +112,86 @@ function setSlot(slot, id){
       el.appendChild(badge);
     }
   }
+
+  // Food stack badge
+  if (slot === 'food'){
+    const n = Math.max(0, state.equipment?.foodQty|0);
+    if (n >= 1){
+      const badge = document.createElement('span');
+      badge.className = 'qty-badge';
+      badge.textContent = `×${n}`;
+      el.appendChild(badge);
+
+      const eat = document.createElement('button');
+      eat.className = 'eat-btn btn-primary';
+      eat.textContent = 'Eat';
+      eat.title = 'Eat one';
+      eat.setAttribute('data-eat-food', '1');
+      el.appendChild(eat);
+    }
+  }
+}
+
+// Eat button on the food slot
+on(grid, 'click', '.eat-btn[data-eat-food]', (e, btn)=>{
+  const slots = state.equipment || {};
+  const base  = slots.food;
+  const qty   = Math.max(0, slots.foodQty|0);
+  if (!base || qty <= 0) return;
+
+  const heal = healAmountForBase(base);
+  if (heal <= 0) return;
+
+  const max = hpMaxFor(state);
+  if (state.hpCurrent >= max) return; // no overheal
+
+  state.hpCurrent = Math.min(max, state.hpCurrent + heal);
+  slots.foodQty = Math.max(0, qty - 1);
+  if (slots.foodQty === 0){
+    // clear slot when empty
+    slots.food = '';
+  }
+  window.dispatchEvent(new Event('hp:change'));
+  window.dispatchEvent(new Event('food:change')); 
+  renderEquipment();
+  saveState(state);
+});
+
+// Unequip
+on(grid, 'click', '.unequip-x', (e, btn)=>{
+  const slot = btn.getAttribute('data-unequip');
+  if (!slot) return;
+
+  // Special handling for FOOD (return stack)
+  if (slot === 'food'){
+    const base = state.equipment?.food;
+    const qty  = Math.max(0, state.equipment?.foodQty|0);
+    if (base && qty > 0){
+      state.inventory[base] = (state.inventory[base]||0) + qty;
+    }
+    if (state.equipment){
+      state.equipment.food = '';
+      state.equipment.foodQty = 0;
+    }
+    window.dispatchEvent(new Event('food:change'));
+    saveState(state);
+    renderInventory();
+    renderEquipment();
+    return;
+  }
+
+  // Existing behavior for other slots (tome logic already present in your code)
+  const ok = unequipItem(state, slot);
+  if (!ok && slot === 'tome') { /* optional toast */ }
+  saveState(state);
+  renderInventory();
+  renderEquipment();
+});
+
+// get heal amount 
+function healAmountForBase(base){
+  const def = ITEMS[base] || {};
+  return Number.isFinite(def.heal) ? def.heal : 0;
 }
 
 /* ---------------- character panel ---------------- */
@@ -211,6 +301,15 @@ on(grid, 'mousemove', '.slot', (e, slotDiv)=>{
 
   if (q != null) lines.push(`Quality: ${q}%`);
 
+  if (slot === 'food'){
+    const heal = healAmountForBase(base);
+    const qty  = Math.max(0, state.equipment?.foodQty|0);
+    if (heal > 0) lines.push(`Heals: ${heal} HP`);
+    lines.push(`Stack: ×${qty}`);
+    showTip(e, title, lines.join('\n'));
+    return;
+  }
+
   const stats = [];
   if (def.atk) stats.push(`Atk: ${Math.round(def.atk*mult)}`);
   if (def.str) stats.push(`Str: ${Math.round(def.str*mult)}`);
@@ -225,7 +324,9 @@ on(grid, 'mousemove', '.slot', (e, slotDiv)=>{
     const minLv = def.tome.minLevel || 1;
     const baseSec = def.tome.baseSec || def.tome.minSeconds || 15;
     const maxSec  = def.tome.maxSec  || def.tome.maxSeconds || 30;
-    lines.push(`Auto-gathers: ${def.tome.resourceName || 'Oak Logs'} (Lv ${minLv}+)`);
+    const resId   = def.tome.dropId || def.tome.resourceId;
+    const resName = ITEMS[resId]?.name || resId || 'Unknown';
+    lines.push(`Auto-gathers: ${resName}`);
     lines.push(`Duration per tome: ${baseSec}–${maxSec}s (scales with Enchanting)`);
 
     const remMs = tomeRemainingMs(state);

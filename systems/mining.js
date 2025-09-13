@@ -6,7 +6,8 @@ import { buildXpTable, levelFromXp } from './xp.js';
 
 const XP_TABLE = buildXpTable();
 const speedFromLevel = (lvl)=> 1 + 0.03*(lvl-1); // +3% per Mining level
-const clampMs = (ms)=> Math.max(350, ms);
+const clampMs = (ms)=> Math.max(100, ms);
+export const ROCK_ESSENCE_ID = 'rock_essence';
 
 /* ---------- helpers ---------- */
 export function listRocks(state){
@@ -80,7 +81,9 @@ export function finishMine(state, rockOrId){
   if (!rock){ state.action = null; return 0; }
 
   addItem(state, rock.drop, 1);
+  const essence = Math.random() < 0.10;
+  if (essence) addItem(state, ROCK_ESSENCE_ID, 1);
   state.minXp = (state.minXp || 0) + (rock.xp || 0);
   state.action = null;
-  return 1;
+  return { qty: 1, essence };
 }

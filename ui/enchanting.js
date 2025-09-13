@@ -18,7 +18,22 @@ const el = {
 };
 
 // ---------- helpers ----------
-function pretty(id){ return (ITEMS[id]?.name) || String(id||'').replace(/_/g,' '); }
+function pretty(id){
+  const baseId = String(id||'').split('@')[0];
+  const item = ITEMS[baseId];
+
+  if (item?.name) return item.name;
+
+  // Format tome IDs like: tome_<element>_<tier>
+  const m = baseId.match(/^tome_(forest|sea|rock)_(novice|adept|master)$/i);
+  if (m){
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    return `${cap(m[2])} ${cap(m[1])} Tome`;
+  }
+
+  return baseId.replace(/_/g, ' ');
+}
+
 function manaText(){
   ensureMana(state);
   const cur = Math.max(0, state.manaCurrent|0);
@@ -233,7 +248,7 @@ export function renderEnchanting(){
       <button class="craft-item enchant-row ${dis ? 'disabled':''} ${busyId===rid?'active':''}"
               data-id="${rid}" ${dis?'disabled':''}>
         <div class="left">
-          <div class="title">${r.name || rid}</div>
+          <div class="title">${r.name || pretty(rid)}</div>
           <div class="io">${ioText(r) || '&nbsp;'}</div>
           <span class="combine-spot" aria-hidden="true" style="display:none"></span>
           <span class="io-icons" aria-hidden="true" style="display:none">${inputsIcons}</span>

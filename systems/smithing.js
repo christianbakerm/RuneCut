@@ -5,7 +5,7 @@ import { buildXpTable, levelFromXp } from './xp.js';
 
 const XP_TABLE = buildXpTable();
 const speedFromLevel = lvl => 1 + 0.02*(lvl-1);
-const clampMs = (ms)=> Math.max(350, ms);
+const clampMs = (ms)=> Math.max(100, ms);
 
 export const UPGRADE_METALS = ['copper','bronze','iron'];
 

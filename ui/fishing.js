@@ -7,6 +7,7 @@ import { renderInventory } from './inventory.js';
 import { renderEnchanting } from './enchanting.js';
 import { renderSkills } from './skills.js';
 import { ITEMS } from '../data/items.js';
+import { startAfk } from '../systems/afk.js';
 
 const el = {
   spotSelect: qs('#spotSelect'),
@@ -25,6 +26,8 @@ function firstUnlocked(){
   return s.find(sp => isSpotUnlocked(state, sp)) || s[0] || null;
 }
 
+let AFK_FISH_ON = false;
+
 function updateBarLabel(){
   if (!el.fishBar || !el.fishLabel) return;
   if (state.action?.type === 'fish'){
@@ -34,7 +37,7 @@ function updateBarLabel(){
     el.fishLabel.textContent = `${state.action.label || 'Fishing'} — ${(pct*100).toFixed(0)}%`;
   } else {
     el.fishBar.style.width = '0%';
-    el.fishLabel.textContent = 'Idle';
+    el.fishLabel.textContent = AFK_FISH_ON ? 'Auto-fishing…' : 'Idle';
   }
 }
 
@@ -42,7 +45,7 @@ export function renderFishing(){
   const list = spots();
   if (!list.length) return;
 
-  // Keep selection sticky unless it's actually locked by level.
+  // Keep selection sticky unless truly locked by level.
   let sel = currentSpot();
   if (!sel || !isSpotUnlocked(state, sel)){
     sel = firstUnlocked();
@@ -53,7 +56,7 @@ export function renderFishing(){
   }
   const selId = sel?.id || '';
 
-  // Build the dropdown (lock by level ONLY; being "busy" should not lock)
+  // Build dropdown
   if (el.spotSelect){
     el.spotSelect.innerHTML = list.map(sp=>{
       const unlocked = isSpotUnlocked(state, sp);
@@ -65,8 +68,8 @@ export function renderFishing(){
     el.spotSelect.value = selId;
   }
 
-  // Enable/disable the button based on "can start now" (busy-safe)
-  if (el.fishBtn) el.fishBtn.disabled = !canFish(state, selId);
+  // Busy-safe enable: ignore current action when deciding button enabled
+  if (el.fishBtn) el.fishBtn.disabled = !canFish({ ...state, action:null }, selId);
 
   updateBarLabel();
 }
@@ -88,29 +91,45 @@ on(document, 'change', '#spotSelect', ()=>{
   renderFishing();
 });
 
+// Start AFK (switch from other skills & restart timer)
 on(document, 'click', '#fishBtn', ()=>{
   const sp = currentSpot();
   if (!sp) return;
-  if (!canFish(state, sp)) return;
+  startAfk(state, { skill:'fishing', targetId: sp.id });
+});
 
-  const ok = startFish(state, sp.id);
-  if (!ok) return;
+/* -------- AFK event hooks (generic) -------- */
 
-  // Finish exactly when the action ends (no reliance on any global tick)
-  const dur = state.action?.duration || sp.baseTime || 2000;
-  setTimeout(()=>{
-    finishFish(state, sp.id);
-    const itemName = ITEMS[sp.drop]?.name || sp.drop || 'fish';
-    const xp = sp.xp || 0;
-    pushLog(`Caught ${itemName} at ${sp.name || sp.id} → +${xp} Fishing xp`, 'fishing');
-    saveState(state);
-    renderFishing();
-    renderEnchanting();
-    renderInventory();
-    renderSkills();
-  }, Math.max(50, dur)); // tiny floor for safety
+// Turn our HUD label on/off
+window.addEventListener('afk:start', (e)=>{
+  AFK_FISH_ON = e?.detail?.skill === 'fishing';
+  if (AFK_FISH_ON && el.fishLabel) el.fishLabel.textContent = 'Auto-fishing…';
+});
+window.addEventListener('afk:end', ()=>{
+  AFK_FISH_ON = false;
+  if (el.fishLabel) el.fishLabel.textContent = 'Idle';
+});
+window.addEventListener('afk:switch', (e)=>{
+  if (e?.detail?.name !== 'fishing'){
+    AFK_FISH_ON = false;
+    if (el.fishLabel) el.fishLabel.textContent = 'Idle';
+  }
+});
 
-  renderFishing(); // show progress immediately
+// Log each AFK catch using the same message format
+window.addEventListener('afk:cycle', (e)=>{
+  const d = e?.detail; if (!d || d.skill !== 'fishing') return;
+  const itemName = ITEMS[d.dropId]?.name || d.dropName || d.dropId;
+  const spotName = d.targetName || d.targetId;
+  const essTxt   = d.essence ? ` · +1 ${ITEMS['sea_essence']?.name || 'Sea Essence'}` : '';
+  const xp       = d.xp|0;
+
+  pushLog(`Caught ${itemName} at ${spotName} → +1 ${itemName}${essTxt} · +${xp} Fishing xp`, 'fishing');
+  saveState(state);
+  renderFishing();
+  renderEnchanting();
+  renderInventory();
+  renderSkills();
 });
 
 // Smooth bar

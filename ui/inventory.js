@@ -19,17 +19,50 @@ const elPopover = qs('#popover');
   css.id = 'invEquipCSS';
   css.textContent = `
     #inventory .inv-slot{ position:relative; }
-    #inventory .inv-slot .equip-quick{
+    /* show small action buttons only on hover */
+    #inventory .inv-slot .equip-quick,
+    #inventory .inv-slot .use-btn{
       position:absolute; left:4px; bottom:4px; z-index:2;
       font-size:11px; padding:2px 6px; line-height:14px;
       opacity:0; pointer-events:none; transition:opacity .15s ease;
     }
-    #inventory .inv-slot:hover .equip-quick{ opacity:1; pointer-events:auto; }
+    #inventory .inv-slot:hover .equip-quick,
+    #inventory .inv-slot:hover .use-btn{ opacity:1; pointer-events:auto; }
+
     /* keep sell in bottom-right */
-    #inventory .inv-slot .sell-btn{ position:absolute; right:4px; bottom:4px; z-index:2; }
+    #inventory .inv-slot .sell-btn{
+      position:absolute; right:4px; bottom:4px; z-index:2;
+    }
   `;
   document.head.appendChild(css);
 })();
+
+/* ---------------- equip food helper ----------------- */
+function equipFoodAllFromInventory(id){
+  const base = baseId(id);
+  const have = state.inventory[id] || 0;
+  if (have <= 0) return false;
+
+  if (!state.equipment) state.equipment = {};
+
+  // If a different food is equipped, return its stack to inventory first
+  if (state.equipment.food && state.equipment.food !== base){
+    const prevBase = state.equipment.food;
+    const prevQty  = Math.max(0, state.equipment.foodQty|0);
+    if (prevQty > 0){
+      state.inventory[prevBase] = (state.inventory[prevBase]||0) + prevQty;
+    }
+    state.equipment.foodQty = 0;
+  }
+
+  state.equipment.food    = base;
+  state.equipment.foodQty = (state.equipment.foodQty|0) + have;
+
+  // remove entire stack of this id from inventory
+  removeItem(state, id, have);
+  window.dispatchEvent(new Event('food:change'));
+  return true;
+}
 
 /* ---------------- metal/tint helpers ---------------- */
 function baseId(id){ return String(id).split('@')[0]; }
@@ -113,7 +146,7 @@ export function renderInventory(){
     const isTome = isEquip && (it.slot === 'tome');
 
     return `
-      <div class="inv-slot ${isEquip ? 'equip' : ''}" data-id="${id}">
+      <div class="inv-slot ${isEquip ? 'equip' : isFood ? 'food' : ''}" data-id="${id}">
         ${iconHtml}
         ${isFood ? `<button class="use-btn" data-use="${id}" title="Eat">Eat</button>` : ''}
         <button class="sell-btn" data-sell="${id}">Sell</button>
@@ -122,6 +155,16 @@ export function renderInventory(){
       </div>`;
   }).join('');
 }
+
+on(elInv, 'click', '.inv-slot.food', (e, tile)=>{
+  if (e.target.closest('button')) return; // let Eat/Sell work
+  const id = tile.getAttribute('data-id');
+  if (equipFoodAllFromInventory(id)){
+    renderInventory();
+    renderEquipment();
+    saveState(state);
+  }
+});
 
 /* ---------------- interactions ---------------- */
 // Eat

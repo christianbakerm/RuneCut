@@ -8,6 +8,7 @@ import { renderInventory } from './inventory.js';
 import { renderEquipment } from './equipment.js';
 import { renderSkills } from './skills.js';
 import { ensureMana, manaMaxFor, startManaRegen } from '../systems/mana.js';
+import { ITEMS } from '../data/items.js';
 
 const el = {
   monsterSelect:  qs('#monsterSelect'),
@@ -129,9 +130,8 @@ function paintHud(){
   const inCooldown = nowMs() < atkCooldownUntil;
   if (el.fightBtn)  el.fightBtn.disabled  = inFight || !mon;
   if (el.attackBtn) {
-    el.attackBtn.disabled = !inFight || inCooldown;
-    el.attackBtn.classList.toggle('cooldown', inCooldown);
-    el.attackBtn.setAttribute('title', inCooldown ? 'Recovering…' : 'Attack');
+    // Delegate enable/disable to the eat-button logic only
+    updateEatBtn();
   }
   if (el.fleeBtn)   el.fleeBtn.disabled   = !inFight;
 }
@@ -249,6 +249,64 @@ function startFightLoop(){
   }, ATK_COOLDOWN_MS);
 }
 
+/* ----------------- Eating ----------------- */
+function healAmountForBase(base){
+  const def = ITEMS[base] || {};
+  return Number.isFinite(def.heal) ? def.heal : 0;
+}
+
+function eatFromFoodSlot(){
+  const eq   = state.equipment || {};
+  const base = eq.food;
+  const qty  = Math.max(0, eq.foodQty|0);
+  if (!base || qty <= 0) return;
+
+  const heal = healAmountForBase(base);
+  if (heal <= 0) return;
+
+  const max = hpMaxFor(state);
+  const before = Math.max(0, Math.min(max, state.hpCurrent ?? max));
+  if (before >= max) return; // no overheal
+
+  const after = Math.min(max, before + heal);
+  state.hpCurrent = after;
+
+  eq.foodQty = qty - 1;
+  if (eq.foodQty <= 0) { eq.food = ''; }
+
+  // Log + repaint
+  try {
+    const name = (ITEMS[base]?.name) || base;
+    pushCombatLog(`You eat ${name} and heal ${after - before} HP.`);
+    renderPanelLogs?.();
+  } catch {}
+
+  renderEquipment();
+  renderInventory?.();
+  saveState(state);
+
+  // notify other UIs
+  window.dispatchEvent(new Event('hp:change'));
+  window.dispatchEvent(new Event('food:change'));
+}
+
+function updateEatBtn(){
+  const btn = el.attackBtn; if (!btn) return;
+  const eq   = state.equipment || {};
+  const base = eq.food;
+  const qty  = Math.max(0, eq.foodQty|0);
+  const heal = base ? healAmountForBase(base) : 0;
+  const max  = hpMaxFor(state);
+  const cur  = Math.max(0, Math.min(max, state.hpCurrent ?? max));
+
+  btn.textContent = qty > 0 ? `Eat (×${qty})` : 'Eat';
+  btn.title = 'Eat one from your equipped food stack';
+  const disabled = !(qty > 0 && heal > 0 && cur < max);
+  btn.disabled = disabled;
+  btn.classList.toggle('disabled', disabled);
+}
+
+
 /* ----------------- Wiring ----------------- */
 
 on(document, 'change', '#monsterSelect', ()=>{
@@ -277,15 +335,22 @@ el.fightBtn?.addEventListener('click', ()=>{
   startFightLoop(); // ⟵ start auto-attacks every 0.5s
 });
 
-// Manual attack still works (optional)
-el.attackBtn?.addEventListener('click', ()=>{
-  if (!state.combat) return;
-  if (nowMs() < atkCooldownUntil) return; // still cooling
-  const res = runCombatTurn();
-  if (res?.done) stopFightLoop();
-  // Re-enable after cooldown even without other updates
-  setTimeout(()=> renderCombat(), ATK_COOLDOWN_MS + 10);
+// Change label immediately
+if (el.attackBtn) {
+  el.attackBtn.textContent = 'Eat';
+  el.attackBtn.title = 'Eat one from your equipped food stack';
+}
+
+el.attackBtn?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  eatFromFoodSlot();
 });
+
+window.addEventListener('hp:change',   updateEatBtn);
+window.addEventListener('food:change', updateEatBtn);
+document.addEventListener('DOMContentLoaded', updateEatBtn);
+updateEatBtn();
+
 
 el.fleeBtn?.addEventListener('click', ()=>{
   if (!state.combat) return;
@@ -293,7 +358,7 @@ el.fleeBtn?.addEventListener('click', ()=>{
   pushCombatLog?.(`You fled from ${mon?.name || state.combat.monsterId}.`);
   state.combat = null;
   saveState(state);
-  stopFightLoop(); // ⟵ stop auto loop on flee
+  stopFightLoop();
   renderCombat();
   renderEquipment();
   renderPanelLogs();

@@ -1,11 +1,19 @@
 // /systems/fishing.js
 import { FISHING_SPOTS } from '../data/fishing.js';
 import { addItem } from './inventory.js';
+import { ITEMS } from '../data/items.js';  
 import { buildXpTable, levelFromXp } from './xp.js';
 
 const XP_TABLE = buildXpTable();
 const speedFromLevel = (lvl)=> 1 + 0.03*(lvl-1); // +3% per Fishing level
-const clampMs = (ms)=> Math.max(350, ms);
+const clampMs = (ms)=> Math.max(100, ms);
+export const FOREST_ESSENCE_ID = 'sea_essence';
+
+function rodSpeedFromState(state){
+  const rodId = state.equipment?.fishing;
+  const def = rodId ? ITEMS[rodId] : null;
+  return (def?.speed) || 1;
+}
 
 /* ---------- helpers ---------- */
 export function listFishingSpots(state){
@@ -45,13 +53,15 @@ export function canFish(state, spotOrId){
   return isSpotUnlocked(state, spot);
 }
 
-export function startFish(state, spotOrId){
+export function startFish(state, spotOrId, onDone){
   const spot = resolveSpot(state, spotOrId);
   if (!spot || !canFish(state, spot)) return false;
 
-  const fishLvl = levelFromXp(state.fishXp || 0, XP_TABLE);
-  const dur = clampMs((spot.baseTime || 2000) / speedFromLevel(fishLvl));
-  const now = performance.now();
+  const fishLvl  = levelFromXp(state.fishXp || 0, XP_TABLE);
+  const rodSpeed = rodSpeedFromState(state);
+  const baseTime = spot.baseTime || 2000;
+  const dur      = clampMs(baseTime / (rodSpeed * speedFromLevel(fishLvl)));
+  const now      = performance.now();
 
   state.selectedSpotId = spot.id;
 
@@ -64,6 +74,12 @@ export function startFish(state, spotOrId){
     spotId: spot.id
   };
 
+  setTimeout(()=>{
+    if (state.action?.type === 'fish' && state.action?.spotId === spot.id){
+      onDone?.();
+    }
+  }, dur);
+
   return true;
 }
 
@@ -72,7 +88,9 @@ export function finishFish(state, spotOrId){
   if (!spot){ state.action = null; return 0; }
 
   addItem(state, spot.drop, 1);
+  const essence = Math.random() < 0.10;
+  if (essence) addItem(state, FOREST_ESSENCE_ID, 1);
   state.fishXp = (state.fishXp || 0) + (spot.xp || 0);
   state.action = null;
-  return 1;
+  return { qty: 1, essence };
 }

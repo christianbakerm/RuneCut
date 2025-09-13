@@ -5,7 +5,10 @@ export const MONSTERS = [
     id:'bog_mite', name:'Bog Mite', level:1, time:2800,
     hp:8, attack:3, defense:2, maxHit:2,
     xp:{attack:8,strength:8,defense:8},
-    drops:[ {gold:2, chance:0.7} ],
+    drops:[ 
+      {gold:2, chance:0.7},
+      { id:'wire_coil',     chance:0.1} 
+    ],
     img:'assets/monsters/bog_mite.png'
   },
   {
@@ -38,11 +41,14 @@ export const MONSTERS = [
   img:'assets/monsters/gutter_rat.png'
   },
 
-{ id:'mud_hopper', name:'Mud Hopper', level:9, time:3600,
+{ id:'swamp_spider', name:'Swamp Spider', level:9, time:3600,
   hp:42, attack:13, defense:10, maxHit:6,
   xp:{attack:30,strength:30,defense:30},
-  drops:[ {gold:11, chance:0.7} ],
-  img:'assets/monsters/mud_hopper.png'
+  drops:[ 
+    { gold:11, chance:0.7 },
+    { id: 'silk_coil', chance: 0.1}
+   ],
+  img:'assets/monsters/swamp_spider.png'
 },
 
 // 6
@@ -65,7 +71,10 @@ export const MONSTERS = [
 { id:'soot_imp', name:'Soot Imp', level:16, time:4200,
   hp:88, attack:22, defense:17, maxHit:9,
   xp:{attack:58,strength:58,defense:58},
-  drops:[ {gold:22, chance:0.7} ],
+  drops:[ 
+    {gold:22, chance:0.7},
+    { id: 'nylon_coil', chance:0.1 } 
+  ],
   img:'assets/monsters/soot_imp.png'
 },
 

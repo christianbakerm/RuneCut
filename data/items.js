@@ -22,27 +22,46 @@ export const ITEMS = {
       sell: 12,
       img: 'assets/materials/forest-essence.png'
     },
+    sea_essence: {
+      id: 'sea_essence',
+      name: 'Sea Essence',
+      type: 'resource',
+      sell: 12,
+      img: 'assets/materials/sea-essence.png'
+    },
+    rock_essence: {
+      id: 'rock_essence',
+      name: 'Rock Essence',
+      type: 'resource',
+      sell: 12,
+      img: 'assets/materials/rock-essence.png'
+    },
+    wire_coil: { id:'wire_coil',  name:'Wire Coil',  type:'resource', sell:2,  img:'assets/materials/wire-coil.png' },
+    silk_coil: { id:'silk_coil',  name:'Silk Coil',  type:'resource', sell:2,  img:'assets/materials/silk-coil.png' },
+    nylon_coil: { id:'nylon_coil',  name:'Nylom Coil',  type:'resource', sell:2,  img:'assets/materials/nylon-coil.png' },
   
     // Tools
     axe_copper: { id:'axe_copper', name:'Copper Axe', type:'equipment', slot:'axe', speed:1.25, img:'assets/equipment/bronze-axe.png' },
     pick_copper: { id:'pick_copper', name:'Copper Pick', type:'equipment', slot:'pick', speed:1.25, img:'assets/equipment/bronze-pick.png' },
-    // Bronze
     axe_bronze:  { id:'axe_bronze',  name:'Bronze Axe', type:'equipment', slot:'axe',  speed:1.35, img:'assets/equipment/bronze-axe.png' },
     pick_bronze: { id:'pick_bronze', name:'Bronze Pick',type:'equipment', slot:'pick', speed:1.35, img:'assets/equipment/bronze-pick.png' },
+    fishing_pole: { id:'fishing_pole', name:'Fishing Pole',type:'equipment', slot:'fishing', speed:1.25, img:'assets/equipment/fishing-pole.png' },
+    sturdy_pole: { id:'sturdy_pole', name:'Sturdy Pole',type:'equipment', slot:'fishing', speed:1.35, img:'assets/equipment/sturdy-pole.png' },
+    anglers_pride: { id:'anglers_pride', name:'Anglers Pride',type:'equipment', slot:'fishing', speed:1.50, img:'assets/equipment/anglers-pride.png' },
 
     // Iron
     axe_iron:    { id:'axe_iron',    name:'Iron Axe',   type:'equipment', slot:'axe',  speed:1.50, img:'assets/equipment/bronze-axe.png' },
     pick_iron:   { id:'pick_iron',   name:'Iron Pick',  type:'equipment', slot:'pick', speed:1.50, img:'assets/equipment/bronze-pick.png' },
 
     // Fishing resources
-    raw_shrimps: { id:'raw_shrimps', name:'Raw Shrimp',  type:'resource', sell:1, img:'assets/food/raw_shrimp.png' },
-    raw_trout:   { id:'raw_trout',   name:'Raw Trout',   type:'resource', sell:2, img:'assets/food/raw_trout.png' },
-    raw_eel:     { id:'raw_eel',     name:'Raw Eel',     type:'resource', sell:8, img:'assets/food/raw_eel.png' },
-    raw_salmon:  { id:'raw_salmon',  name:'Raw Salmon',  type:'resource', sell:15, img:'assets/food/raw_salmon.png' },
-    raw_halibut: { id:'raw_halibut', name:'Raw Halibut', type:'resource', sell:29, img:'assets/food/raw_halibut.png' },
-    raw_manta_ray: { id:'raw_manta_ray', name:'Raw Manta Ray', type:'resource', sell:40,  img:'assets/food/raw_manta-ray.png' },
-    raw_angler: { id:'raw_angler', name:'Raw Angler', type:'resource', sell:65, img:'assets/food/raw_angler.png' },
-    raw_dolphin: { id:'raw_dolphin', name:'Raw Dolphin', type:'resource', sell:90, img:'assets/food/raw_dolphin.png' },
+    raw_shrimps: { id:'raw_shrimps', name:'Raw Shrimp',  type:'resource', sell:1, xp: 10, img:'assets/food/raw_shrimp.png' },
+    raw_trout:   { id:'raw_trout',   name:'Raw Trout',   type:'resource', sell:2, xp: 15, img:'assets/food/raw_trout.png' },
+    raw_eel:     { id:'raw_eel',     name:'Raw Eel',     type:'resource', sell:8, xp: 24, img:'assets/food/raw_eel.png' },
+    raw_salmon:  { id:'raw_salmon',  name:'Raw Salmon',  type:'resource', sell:15, xp: 50, img:'assets/food/raw_salmon.png' },
+    raw_halibut: { id:'raw_halibut', name:'Raw Halibut', type:'resource', sell:29, xp: 75, img:'assets/food/raw_halibut.png' },
+    raw_manta_ray: { id:'raw_manta_ray', name:'Raw Manta Ray', type:'resource', sell:40,  xp: 120, img:'assets/food/raw_manta-ray.png' },
+    raw_angler: { id:'raw_angler', name:'Raw Angler', type:'resource', sell:65, xp: 175, img:'assets/food/raw_angler.png' },
+    raw_dolphin: { id:'raw_dolphin', name:'Raw Dolphin', type:'resource', sell:90, xp: 250, img:'assets/food/raw_dolphin.png' },
 
     // Cooked foods
     shrimps: { id:'shrimps', name:'Shrimp',   type:'food', heal:5,  sell:2,  img:'assets/food/shrimp.png' },
@@ -109,11 +128,45 @@ export const ITEMS = {
       sell: 25,
       tome: {
         kind: 'auto_gather',
-        skill: 'wc',               
-        resourceId: 'oak',         
+        skill: 'forestry',               
+        resourceId: 'log_oak',         
         minLevel: 1,               
-        baseSec: 15,               
-        maxSec: 30                 
+        baseSec: 25,               
+        maxSec: 45                 
+      }
+    },
+    tome_sea_novice: {
+      id: 'tome_sea_novice',
+      name: 'Novice Sea Tome',
+      type: 'equipment',
+      slot: 'tome',
+      img: 'assets/materials/book.png',
+      tint:'sea',
+      sell: 25,
+      tome: {
+        kind: 'auto_gather',
+        skill: 'fishing',               
+        resourceId: 'raw_shrimps',         
+        minLevel: 1,               
+        baseSec: 25,               
+        maxSec: 45                 
+      }
+    },
+    tome_rock_novice: {
+      id: 'tome_rock_novice',
+      name: 'Novice Rock Tome',
+      type: 'equipment',
+      slot: 'tome',
+      img: 'assets/materials/book.png',
+      tint:'rock',
+      sell: 25,
+      tome: {
+        kind: 'auto_gather',
+        skill: 'mining',               
+        resourceId: 'ore_copper',         
+        minLevel: 1,               
+        baseSec: 25,               
+        maxSec: 45                 
       }
     },
 

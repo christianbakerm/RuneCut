@@ -1,4 +1,4 @@
-
+// /systems/inventory.js
 import { ITEMS } from '../data/items.js';
 import { renderAllSkillingPanels } from '../ui/app.js';
 
@@ -13,5 +13,7 @@ export function removeItem(state, id, c) {
   renderAllSkillingPanels();
 }
 export function addGold(state, n) {
-  state.gold += n;
+  state.gold = (state.gold || 0) + (n | 0);
+  try { window.dispatchEvent(new Event('gold:change')); } catch {}
+  renderAllSkillingPanels();
 }

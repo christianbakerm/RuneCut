@@ -722,6 +722,8 @@ img.icon-img.tint-iron {
 }
 
 .icon-img.tint-forest { filter: hue-rotate(90deg) saturate(1.2); }
+.icon-img.tint-sea  { filter: hue-rotate(200deg) saturate(1.15) brightness(1.05); }
+.icon-img.tint-rock { filter: grayscale(1) contrast(1.25) brightness(0.92); }
 
 /* Enchanting animation layer */
 .enchant-layer {

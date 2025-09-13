@@ -6,7 +6,7 @@ import { buildXpTable, levelFromXp } from './xp.js';
 
 const XP_TABLE = buildXpTable();
 const speedFromLevel = (lvl)=> 1 + 0.03*(lvl-1);  // +3% per Woodcutting level
-const clampMs = (ms)=> Math.max(250, ms);         // floor so actions aren’t instant
+const clampMs = (ms)=> Math.max(100, ms);         // floor so actions aren’t instant
 export const FOREST_ESSENCE_ID = 'forest_essence';
 
 /* ---------------- helpers ---------------- */

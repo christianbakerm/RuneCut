@@ -9,7 +9,7 @@ const SK = [
   { key:'min',     xp:'minXp',     id:'#tile-min',     label:'Mining' },
   { key:'smith',   xp:'smithXp',   id:'#tile-smith',   label:'Smithing' },
   { key:'craft',   xp:'craftXp',   id:'#tile-craft',   label:'Crafting' },
-  { key:'enchant', xp:'enchantXp', id:'#tile-enchant', label:'Enchanting' }, // ← NEW
+  { key:'enchant', xp:'enchantXp', id:'#tile-enchant', label:'Enchanting' },
   { key:'cook',    xp:'cookXp',    id:'#tile-cook',    label:'Cooking' },
   { key:'atk',     xp:'atkXp',     id:'#tile-atk',     label:'Attack' },
   { key:'str',     xp:'strXp',     id:'#tile-str',     label:'Strength' },
@@ -30,6 +30,14 @@ function thresholdsFor(level){
   return { base, next };
 }
 function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+// Format & paint Gold
+function formatGold(n){ try { return (n|0).toLocaleString(); } catch { return String(n|0); } }
+export function renderGold(){
+  const el = document.getElementById('gold');
+  if (!el) return;
+  el.textContent = formatGold(state.gold|0);
+}
 
 // Update a single tile; returns the computed level so we can total them
 function paintTile(s){
@@ -66,12 +74,14 @@ function paintTile(s){
   return lvl;
 }
 
-// Public render: paints tiles and updates Total
+// Public render: paints tiles, Total, and Gold
 export function renderSkills(){
   let total = 0;
   for (const s of SK) total += paintTile(s);
   const totalEl = document.querySelector('#totalLevel');
   if (totalEl) totalEl.textContent = String(total);
+
+  renderGold(); // <- update Gold display
 }
 
 // Optional: richer hover tooltip with totals + progress (bound once)
@@ -99,8 +109,11 @@ attachHoversOnce();
 export function skillsXpSignature(){
   return (
     (state.wcXp|0)     + (state.fishXp|0)   + (state.minXp|0)    +
-    (state.smithXp|0)  + (state.craftXp|0)  + (state.enchantXp|0) + // ← NEW
+    (state.smithXp|0)  + (state.craftXp|0)  + (state.enchantXp|0) +
     (state.cookXp|0)   + (state.atkXp|0)    + (state.strXp|0)    +
     (state.defXp|0)
   );
 }
+
+// Optional: live gold updates when other systems change it
+window.addEventListener('gold:change', renderGold);
