@@ -30,8 +30,8 @@ header {
 }
 .brand { font-weight: 800; letter-spacing: .2px; }
 .brand b { color: var(--accent); }
-.wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
-.grid { display: grid; grid-template-columns: 260px 1.4fr 320px; gap: 16px; }
+.wrap { max-width: 1400px; margin: 0 auto; padding: 16px; }
+.grid { display: grid; grid-template-columns: 390px 1.4fr 280px; gap: 16px; }
 @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
 
 .card { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid #242a4f; border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; }
@@ -94,7 +94,7 @@ button:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
 .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; border: 1px solid #2a3162; background: #0e132c; font-size: 12px; }
 
-.inventory { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; }
+.inventory { display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; }
 
 @media (max-width: 520px) {
   .inventory { grid-template-columns: repeat(2, 1fr); }
@@ -141,13 +141,13 @@ footer { margin-top: 10px; color: var(--text-dim); font-size: 12px; text-align: 
 .divider { height: 12px; }
 
 /* Skills grid */
-.skills-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-top:8px; }
+.skills-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px; }
 .skill-tile { background:#0f1431; border:1px solid #2a3162; border-radius:12px; padding:8px; }
 .skill-tile .tile-header { display:flex; align-items:center; gap:6px; font-weight:700; margin-bottom:6px; }
 .skill-tile .tile-level { font-size:12px; color:var(--text-dim); margin-bottom:4px; }
 
 /* Equipment grid */
-.equip-grid { display: grid; grid-template-columns: repeat(3, 72px); column-gap: 18px; row-gap: 10px; padding: 6px 2px; justify-content: center; }
+.equip-grid { display: grid; grid-template-columns: repeat(3, 72px); column-gap: 10px; row-gap: 6px; padding: 6px 2px; justify-content: center; }
 .equip-cell { display: grid; gap: 4px; justify-items: center; }
 .equip-cell .slot { position: relative; width: 72px; height: 72px; border: 1px dashed #394281; border-radius: 12px; display: grid; place-items: center; background: #0c1030; box-shadow: inset 0 0 0 1px #121739; }
 .equip-cell .slot:hover { border-color: #6270d9; box-shadow: inset 0 0 0 1px #2b3aa0; }
@@ -169,7 +169,7 @@ footer { margin-top: 10px; color: var(--text-dim); font-size: 12px; text-align: 
 
 
 /* Compact inventory slots */
-.inv-slot { position: relative; height: 96px; border:1px solid #2a3162; background: linear-gradient(180deg,#0f1431,#0b1028); border-radius:12px; display:grid; place-items:center; padding:6px; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; box-shadow: inset 0 0 0 1px #121739; }
+.inv-slot { position: relative; height: 72px; border:1px solid #2a3162; background: linear-gradient(180deg,#0f1431,#0b1028); border-radius:12px; display:grid; place-items:center; padding:6px; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; box-shadow: inset 0 0 0 1px #121739; }
 .inv-slot:hover { border-color:#4a56c7; box-shadow: inset 0 0 0 1px #2b3aa0, 0 6px 16px rgba(0,0,0,.25); transform: translateY(-1px); }
 .inv-slot .icon { font-size:28px; line-height:1; filter: drop-shadow(0 1px 0 rgba(0,0,0,.25)); }
 
@@ -890,3 +890,72 @@ img.icon-img.tint-iron {
   margin-top: 16px;
 }
 
+/* ---- Crafting cards (compact, like smithing) ---- */
+#craftList { display: grid; gap: 8px; }
+
+#craftList .craft-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid #2a3162;
+  border-radius: 12px;
+  background: #0f1431;
+  box-shadow: inset 0 0 0 1px #121739;
+  transition: border-color .12s ease, transform .12s ease, box-shadow .12s ease;
+  text-align: left;
+}
+
+#craftList .craft-card:hover{
+  border-color: #4a56c7;
+  transform: translateY(-1px);
+  box-shadow: inset 0 0 0 1px #2b3aa0, 0 6px 16px rgba(0,0,0,.25);
+}
+#craftList .craft-card.disabled{
+  opacity: .6; cursor: not-allowed; transform: none;
+}
+
+#craftList .craft-head{
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+}
+#craftList .craft-head .icon-img{ width:36px; height:36px; object-fit:contain; }
+
+#craftList .craft-titles{ line-height: 1.1; }
+#craftList .craft-name{ font-weight: 700; letter-spacing: .2px; }
+#craftList .craft-sub{ font-size: 12px; }
+
+#craftList .craft-badges{ display:flex; gap:6px; align-items:center; }
+#craftList .craft-badges .badge{
+  display:inline-flex; align-items:center; height: 20px;
+  padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  border: 1px solid #2a3162; background: #0e132c; color: var(--text);
+}
+#craftList .craft-badges .badge.level{
+  border-color: #3a4290;
+  background: linear-gradient(180deg, #1b2688, #17236f);
+}
+#craftList .craft-badges .badge.xp{
+  border-color: #2ac985;
+  background: linear-gradient(180deg, #1f8f5f, #15714b);
+}
+
+/* In-card progress (shown only when crafting that item) */
+#craftList .craft-progress{
+  height: 6px;
+  border-radius: 999px;
+  background: #0b0f25;
+  border: 1px solid #1f2652;
+  overflow: hidden;
+}
+#craftList .craft-progress .bar{
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), #87f4ff);
+  transition: width .05s linear;
+}
+
+/* Make default .craft-item (old) rows match spacing if any remain */
+#craftList .craft-item { padding: 10px 12px; }

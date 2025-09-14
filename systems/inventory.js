@@ -17,3 +17,4 @@ export function addGold(state, n) {
   try { window.dispatchEvent(new Event('gold:change')); } catch {}
   renderAllSkillingPanels();
 }
+  

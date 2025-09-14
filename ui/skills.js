@@ -80,7 +80,8 @@ export function renderSkills(){
   for (const s of SK) total += paintTile(s);
   const totalEl = document.querySelector('#totalLevel');
   if (totalEl) totalEl.textContent = String(total);
-
+  
+  attachHoversOnce();
   renderGold(); // <- update Gold display
 }
 
@@ -103,7 +104,6 @@ function attachHoversOnce(){
     tile.addEventListener('mouseleave', hideTip);
   });
 }
-attachHoversOnce();
 
 // Utility used by app.js (or anywhere) to detect XP changes cheaply
 export function skillsXpSignature(){

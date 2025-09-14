@@ -8,6 +8,9 @@ import { renderInventory } from './inventory.js';
 import { renderEnchanting } from './enchanting.js';
 import { renderSkills } from './skills.js';
 import { ITEMS } from '../data/items.js';
+import { buildXpTable, levelFromXp } from '../systems/xp.js';
+
+const XP_TABLE = buildXpTable();
 
 const el = {
   fire:   qs('#cookFire'),
@@ -22,6 +25,13 @@ let holding = false;           // true while timing
 let holdingMode = null;        // 'drag' | 'pointer'
 let zoneStart = 0.35, zoneEnd = 0.53; // golden zone [0..1]
 
+/* ---------------- helpers ---------------- */
+function playerLvl(){ return levelFromXp(state.cookXp || 0, XP_TABLE); }
+function reqLevel(rawId){
+  const rec = COOK_RECIPES[rawId] || {};
+  return rec.level ?? rec.lvl ?? 1;
+}
+
 function nameOf(id){
   return (ITEMS?.[id]?.name)
     || String(id||'').replace(/^raw_/, '').replace(/_/g, ' ')
@@ -29,8 +39,17 @@ function nameOf(id){
 }
 function setHint(s){ if (el.hint) el.hint.textContent = s; }
 
-function randomizeZone(){
-  const width = 0.18;
+/* Golden zone width with scaling: ×2 per 10 levels OVER. */
+function zoneWidthFor(rawId){
+  const over = Math.max(0, playerLvl() - reqLevel(rawId));
+  const steps = Math.floor(over / 10);
+  const base = 0.18;
+  // clamp so it never covers the whole bar
+  return Math.max(0.06, Math.min(0.6, base * Math.pow(2, steps)));
+}
+
+function randomizeZone(customWidth){
+  const width = (typeof customWidth === 'number' ? customWidth : 0.18);
   const left  = 0.12 + Math.random() * (0.76 - width);
   zoneStart = left;
   zoneEnd   = left + width;
@@ -40,6 +59,7 @@ function randomizeZone(){
   }
 }
 
+/* ---------------- inventory dragability ---------------- */
 function ensureRawSlotsDraggable(){
   const inv = document.getElementById('inventory'); if (!inv) return;
   inv.querySelectorAll('.inv-slot').forEach(slot=>{
@@ -56,6 +76,7 @@ function ensureRawSlotsDraggable(){
   mo.observe(inv, { childList:true, subtree:true });
 })();
 
+/* ---------------- paint ---------------- */
 function updateBar(){
   if (!el.bar) return;
   if (state.action?.type === 'cook' && holding){
@@ -70,7 +91,7 @@ function updateBar(){
 }
 export function renderCooking(){ updateBar(); }
 
-// -------------------- drag from inventory --------------------
+/* -------------------- drag from inventory -------------------- */
 on(document, 'dragstart', '.inv-slot', (e, slot)=>{
   const id = slot.dataset.id || '';
   if (!id.startsWith('raw_') || !(state.inventory?.[id] > 0)) return;
@@ -119,7 +140,7 @@ el.fire?.addEventListener('drop', (e)=>{
         setHint(cookGateReason(state, id) || 'Cannot cook this yet');
       } else {
         pendingRawId = id;
-        randomizeZone();
+        randomizeZone(zoneWidthFor(id));
         updateBar();
       }
     }
@@ -127,7 +148,7 @@ el.fire?.addEventListener('drop', (e)=>{
   dragRawId = null;
 });
 
-// -------------------- click–hold alternative --------------------
+/* -------------------- click–hold alternative -------------------- */
 el.fire?.addEventListener('pointerdown', (e)=>{
   e.preventDefault();
   el.fire.setPointerCapture?.(e.pointerId);
@@ -141,7 +162,7 @@ el.fire?.addEventListener('pointerdown', (e)=>{
       if (q>qty){ qty=q; best=r; }
     }
     id = best;
-    if (id){ pendingRawId = id; randomizeZone(); }
+    if (id){ pendingRawId = id; randomizeZone(zoneWidthFor(id)); }
   }
   if (!id) return;
 
@@ -165,7 +186,16 @@ el.fire?.addEventListener('pointercancel', ()=>{
   }
 });
 
-// -------------------- timing core --------------------
+/* -------------------- timing core -------------------- */
+/* Duration scaling: ×2 time per 6 levels UNDER (i.e., speed halves). */
+function scaledDurationFor(rawId){
+  const lvl = playerLvl();
+  const req = reqLevel(rawId);
+  const under = Math.max(0, req - lvl);
+  const factor = Math.pow(2, under / 6); // continuous scaling
+  return COOK_TIME_MS * factor;
+}
+
 function startHoldWith(rawId, mode){
   if (holding || state.action) return;
   if (!COOK_RECIPES[rawId] || !canCook(state, rawId)){
@@ -174,14 +204,15 @@ function startHoldWith(rawId, mode){
   }
 
   pendingRawId = rawId;
-  randomizeZone();
+  randomizeZone(zoneWidthFor(rawId));
 
   const ok = startCook(state, rawId);
   if (!ok) return;
 
-  // restart timer exactly now
+  // restart timer exactly now with scaled duration
   state.action.startedAt = performance.now();
-  state.action.endsAt    = state.action.startedAt + COOK_TIME_MS;
+  state.action.duration  = scaledDurationFor(rawId);
+  state.action.endsAt    = state.action.startedAt + state.action.duration;
 
   holding = true;
   holdingMode = mode;
@@ -203,7 +234,7 @@ function endHold(source){
   if (res.ok){
     if (outcome === 'perfect' && res.cooked > 0){
       const cookedName = nameOf(res.cookedId);
-      pushLog(`Cooked ${cookedName} → +${res.xp} Cooking xp`, 'cooking');
+      pushLog(`Cooked ${res.cooked}× ${cookedName} → +${res.xp} Cooking xp`, 'cooking');
     } else if (outcome === 'burnt'){
       pushLog(`Burnt ${nameOf(res.rawId)} — no xp`, 'cooking');
     } else {
@@ -219,7 +250,7 @@ function endHold(source){
   holdingMode = null;
   if (outcome !== 'early') pendingRawId = null;
 
-  randomizeZone();
+  randomizeZone(zoneWidthFor(pendingRawId || 'raw_shrimps')); // harmless default
   updateBar();
 }
 

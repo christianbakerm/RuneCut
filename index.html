@@ -324,13 +324,13 @@
         <h2>🧰 Equipment</h2>
         <!-- Compact equipment grid -->
         <div id="equipmentGrid" class="equip-grid">
-          <div class="equip-cell" data-slot="head">
-            <div class="slot empty"><span class="icon">🪖</span><button class="unequip-x" data-unequip="head" title="Unequip">✕</button></div>
-            <div class="slot-label">Head</div>
-          </div>
           <div class="equip-cell" data-slot="cape">
             <div class="slot empty"><span class="icon">🧣</span><button class="unequip-x" data-unequip="cape" title="Unequip">✕</button></div>
             <div class="slot-label">Cape</div>
+          </div>
+          <div class="equip-cell" data-slot="head">
+            <div class="slot empty"><span class="icon">🪖</span><button class="unequip-x" data-unequip="head" title="Unequip">✕</button></div>
+            <div class="slot-label">Head</div>
           </div>
           <div class="equip-cell" data-slot="amulet">
             <div class="slot empty"><span class="icon">📿</span><button class="unequip-x" data-unequip="amulet" title="Unequip">✕</button></div>
@@ -393,7 +393,7 @@
         <div class="divider"></div>
         <h2>🧙 Character</h2>
         <div class="row" style="gap:10px; margin-bottom:8px;">
-          <div class="stat"><span>HP</span> <b id="charHpText">0/0</b></div>
+         <!--<div class="stat"><span>HP</span> <b id="charHpText">0/0</b></div>-->
           <div class="stat"><span>Atk</span> <b id="charAtk">0</b></div>
           <div class="stat"><span>Str</span> <b id="charStr">0</b></div>
           <div class="stat"><span>Def</span> <b id="charDef">0</b></div>
@@ -405,8 +405,8 @@
         </div>        
         <div class="row small" style="margin-top:8px;">
           <span class="pill">Max Hit: <b id="charMaxHit">1</b></span>
-          <span class="pill">Accuracy vs Selected: <b id="charAcc">—</b></span>
-          <span class="pill">Defense Bonus: <b id="charDefBonus">+0</b></span>
+          <!--<span class="pill">Accuracy vs Selected: <b id="charAcc">—</b></span>-->
+          <!--<span class="pill">Defense Bonus: <b id="charDefBonus">+0</b></span>-->
         </div>
       </section>
     </div>
