@@ -69,7 +69,7 @@ export function maxCraftable(state, recipeOrId){
 
 // ---- callback-style single craft (used by /ui/crafting.js) ----
 export function startCraft(state, recipeOrId, onDone){
-  if (state.action) return false;
+  //if (state.action) return false;
   const id = resolveId(recipeOrId);
   const r = getRec(id); if(!r) return false;
   if (!canCraft(state, id, 1)) return false;

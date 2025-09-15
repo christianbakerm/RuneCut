@@ -959,3 +959,9 @@ img.icon-img.tint-iron {
 
 /* Make default .craft-item (old) rows match spacing if any remain */
 #craftList .craft-item { padding: 10px 12px; }
+
+.equip-cell.drag-target .slot { outline: 2px dashed rgba(255,255,255,.35); }
+.enchant-badge { position:absolute; right:4px; top:4px; font-size:12px; opacity:.95; }
+.enchanted-pulse { animation: swiftPulse .35s ease; }
+@keyframes swiftPulse { from{transform:scale(1.04)} to{transform:scale(1)} }
+

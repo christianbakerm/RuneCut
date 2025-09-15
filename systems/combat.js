@@ -1,24 +1,24 @@
-// systems/combat.js (buffed scaling, quality-aware gear)
+// systems/combat.js — quality-aware gear, stable HP calc, UI-compatible XP payload
 import { MONSTERS } from '../data/monsters.js';
 import { addItem, addGold } from './inventory.js';
 import { XP_TABLE, levelFromXp } from './xp.js';
 import { ITEMS } from '../data/items.js';
 
-// --- Tuning knobs (edit to taste) ---
+/* ------------------- Tuning knobs ------------------- */
 const BALANCE = {
   // Player ratings
-  atkLevelWeight: 3.0,   // how much Attack level feeds accuracy
-  atkGearWeight:  2.5,   // how much +Atk gear feeds accuracy
-  strLevelWeight: 0.5,  // how much Strength level feeds max hit
-  strGearWeight:  0.5,  // how much +Str gear feeds max hit
+  atkLevelWeight: 3.0,   // Attack level → accuracy
+  atkGearWeight:  2.5,   // +Atk gear → accuracy
+  strLevelWeight: 0.5,   // Strength level → max hit
+  strGearWeight:  0.5,   // +Str gear → max hit
 
   // Accuracy curves
   accBase:   0.15,       // flat base hit chance
   accScale:  0.80,       // portion driven by ratings vs target
 
   // Defense vs monsters
-  defLevelWeight: 1.4,   // how much Defense level resists monsters
-  defGearWeight:  2.2,   // how much +Def gear resists monsters
+  defLevelWeight: 1.4,   // Defense level → resist
+  defGearWeight:  2.2,   // +Def gear → resist
   monAccBase:  0.05,     // monster base hit chance
   monAccScale: 0.90,     // monster accuracy scaling
 
@@ -36,14 +36,16 @@ const BALANCE = {
 
 function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
 
+/* ------------------- Equipment helpers ------------------- */
 // Quality-aware equipment stat sum (supports ids like "copper_plate@87")
 function sumEquip(state, key){
   let total = 0;
-  for(const id of Object.values(state.equipment||{})){
-    if(!id) continue;
+  const eq = state.equipment || {};
+  for (const id of Object.values(eq)){
+    if (!id) continue;
     const [base, qStr] = String(id).split('@');
-    const it = ITEMS[base]; if(!it) continue;
-    const mult = qStr ? clamp(parseInt(qStr,10)/100, 0.01, 2) : 1; // 1–100% => 0.01–1.00
+    const it = ITEMS[base]; if (!it) continue;
+    const mult = qStr ? clamp(parseInt(qStr,10)/100, 0.01, 2) : 1; // 1–100% => 0.01–1.00 (cap 2x just in case)
     total += Math.round((it[key]||0) * mult);
   }
   return total;
@@ -51,8 +53,9 @@ function sumEquip(state, key){
 
 function emitHpChange(){ try { window.dispatchEvent(new CustomEvent('hp:change')); } catch {} }
 
+/* ------------------- Public: HP calc ------------------- */
 export function hpMaxFor(state){
-  const defLvl = levelFromXp(state.defXp, XP_TABLE);
+  const defLvl = levelFromXp(Number(state.defXp)||0, XP_TABLE);
   const hpGear = sumEquip(state, 'hp');
   return Math.floor(
     BALANCE.hpBase +
@@ -61,10 +64,11 @@ export function hpMaxFor(state){
   );
 }
 
+/* ------------------- Public: player snapshot ------------------- */
 export function derivePlayerStats(state, mon){
-  const atkLvl = levelFromXp(state.atkXp, XP_TABLE);
-  const strLvl = levelFromXp(state.strXp, XP_TABLE);
-  const defLvl = levelFromXp(state.defXp, XP_TABLE);
+  const atkLvl = levelFromXp(Number(state.atkXp)||0, XP_TABLE);
+  const strLvl = levelFromXp(Number(state.strXp)||0, XP_TABLE);
+  const defLvl = levelFromXp(Number(state.defXp)||0, XP_TABLE);
 
   const atkBonus = sumEquip(state,'atk');
   const strBonus = sumEquip(state,'str');
@@ -76,33 +80,37 @@ export function derivePlayerStats(state, mon){
   const strRating = strLvl*BALANCE.strLevelWeight + strBonus*BALANCE.strGearWeight;
 
   // Accuracy vs selected monster
-  const targetDef = (mon?.defense ?? mon?.level ?? 1) * 1.3 + 10;
+  const targetDef = ((mon?.defense ?? mon?.level ?? 1) * 1.3) + 10;
   const acc = clamp(BALANCE.accBase + (atkRating/(atkRating + targetDef))*BALANCE.accScale, 0.05, 0.95);
 
-  // Max hit — now strongly driven by Strength gear & level
+  // Max hit — driven by Strength, lightly by Attack level
   const maxHit = Math.max(1, Math.floor(1 + strRating + atkLvl*BALANCE.maxHitAtkWeight));
 
   return { atkLvl, strLvl, defLvl, atkBonus, strBonus, defBonus, maxHit, acc, atkRating, defRating, strRating };
 }
 
+/* ------------------- Combat lifecycle ------------------- */
 export function beginFight(state, monsterId){
-  if(state.combat) return;
+  if (state.combat) return;
   const mon = MONSTERS.find(m=>m.id===monsterId);
-  if(!mon) return;
+  if (!mon) return;
   const mx = hpMaxFor(state);
-  if(state.hpCurrent==null) state.hpCurrent = mx; else state.hpCurrent = Math.min(state.hpCurrent, mx);
+  // Initialize or clamp current HP to new max
+  if (state.hpCurrent == null) state.hpCurrent = mx;
+  else state.hpCurrent = Math.min(state.hpCurrent, mx);
   state.combat = { monsterId, monHp: mon.hp ?? 20, turn: 0 };
 }
 
 export function turnFight(state){
-  if(!state.combat) return { done:true, reason:'no-combat' };
+  if (!state.combat) return { done:true, reason:'no-combat' };
   const mon = MONSTERS.find(m=>m.id===state.combat.monsterId);
-  const ps = derivePlayerStats(state, mon);
+  if (!mon) { state.combat = null; return { done:true, reason:'bad-monster' }; }
 
+  const ps = derivePlayerStats(state, mon);
   let log = [];
 
   // --- Player attacks ---
-  if(Math.random() < ps.acc){
+  if (Math.random() < ps.acc){
     const dmg = 1 + Math.floor(Math.random()*ps.maxHit); // 1..maxHit
     state.combat.monHp = Math.max(0, state.combat.monHp - dmg);
     log.push(`You hit ${mon.name} for ${dmg}.`);
@@ -110,11 +118,10 @@ export function turnFight(state){
     log.push(`You miss ${mon.name}.`);
   }
 
-  if(state.combat.monHp<=0){
-    awardWin(state, mon);
+  if (state.combat.monHp <= 0){
+    const payload = awardWin(state, mon);
     log.push(`You defeated ${mon.name}!`);
-    const xp = state.__lastFightXp;
-    return { done:true, win:true, log, xp, loot: state.__lastFightLootNames||[] };
+    return { done:true, win:true, log, xp: payload.xp, loot: payload.loot };
   }
 
   // --- Monster attacks ---
@@ -122,11 +129,13 @@ export function turnFight(state){
   const monAcc = clamp(BALANCE.monAccBase + (monAtkRating/(monAtkRating + ps.defRating))*BALANCE.monAccScale, 0.05, 0.95);
   const monMaxHit = mon.maxHit ?? (3 + Math.floor((mon.level||1)/5));
 
-  if(Math.random() < monAcc){
+  if (Math.random() < monAcc){
     let dmg = 1 + Math.floor(Math.random()*monMaxHit);
     const mitigation = Math.floor(ps.defBonus * BALANCE.dmgMitigationPerDef);
     dmg = Math.max(1, dmg - mitigation);
-    state.hpCurrent = Math.max(0, state.hpCurrent - dmg);
+    const mx = hpMaxFor(state);
+    const cur = Math.max(0, Math.min(mx, state.hpCurrent ?? mx));
+    state.hpCurrent = Math.max(0, cur - dmg);
     emitHpChange();
     log.push(`${mon.name} hits you for ${dmg}.`);
   } else {
@@ -135,41 +144,65 @@ export function turnFight(state){
 
   state.combat.turn++;
 
-  if(state.hpCurrent<=0){
-    state.hpCurrent = 1; // You survive at 1 HP
+  if (state.hpCurrent <= 0){
+    // You "die", but don't lose progress; exit combat
+    state.hpCurrent = 1;
     emitHpChange();
-    const result = { done:true, win:false, log:[...log, `You were defeated by ${mon.name}.`] };
     state.combat = null;
-    state.__lastFightXp = { atk:0, str:0, def:0 };
-    state.__lastFightLootNames = [];
-    return result;
+    return {
+      done: true,
+      win: false,
+      log: [...log, `You were defeated by ${mon.name}.`],
+      xp: { atk:0, str:0, def:0 },
+      loot: []
+    };
   }
 
   return { done:false, log };
 }
 
+/* ------------------- Rewards ------------------- */
+function monXpCanon(mon){
+  const x = mon?.xp || {};
+  return {
+    atk: Number.isFinite(x.atk) ? x.atk : (Number(x.attack)   || 0),
+    str: Number.isFinite(x.str) ? x.str : (Number(x.strength) || 0),
+    def: Number.isFinite(x.def) ? x.def : (Number(x.defense)  || 0),
+  };
+}
+
 function awardWin(state, mon){
   const style = state.trainingStyle || 'shared';
-  const gained = { atk:0, str:0, def:0 };
-  if(style==='attack') gained.atk = mon.xp.attack;
-  else if(style==='strength') gained.str = mon.xp.strength;
-  else if(style==='defense') gained.def = mon.xp.defense;
+  const base = monXpCanon(mon);
+
+  let gained = { atk:0, str:0, def:0 };
+  if (style === 'attack')      gained.atk = base.atk;
+  else if (style === 'strength') gained.str = base.str;
+  else if (style === 'defense')  gained.def = base.def;
   else {
-    gained.atk = Math.max(1, Math.floor(mon.xp.attack/3));
-    gained.str = Math.max(1, Math.floor(mon.xp.strength/3));
-    gained.def = Math.max(1, Math.floor(mon.xp.defense/3));
+    // shared — split, but guarantee at least 1 each if base > 0
+    gained.atk = base.atk > 0 ? Math.max(1, Math.floor(base.atk/3)) : 0;
+    gained.str = base.str > 0 ? Math.max(1, Math.floor(base.str/3)) : 0;
+    gained.def = base.def > 0 ? Math.max(1, Math.floor(base.def/3)) : 0;
   }
-  state.atkXp += gained.atk; state.strXp += gained.str; state.defXp += gained.def;
+
+  state.atkXp = (Number(state.atkXp)||0) + gained.atk;
+  state.strXp = (Number(state.strXp)||0) + gained.str;
+  state.defXp = (Number(state.defXp)||0) + gained.def;
 
   // Loot roll
   const lootNames = [];
-  for(const d of mon.drops){
-    if(Math.random() < d.chance){
-      if(d.id){ addItem(state, d.id, 1); lootNames.push(ITEMS[d.id].name); }
-      if(d.gold){ addGold(state, d.gold); lootNames.push(`${d.gold}g`); }
+  for (const d of (mon.drops||[])){
+    if (Math.random() < (d.chance ?? 0)){
+      if (d.id){ addItem(state, d.id, 1); lootNames.push(ITEMS[d.id]?.name || d.id); }
+      if (d.gold){ addGold(state, d.gold); lootNames.push(`${d.gold}g`); }
     }
   }
-  state.__lastFightXp = gained;
-  state.__lastFightLootNames = lootNames;
+
+  // End combat
   state.combat = null;
+
+  // Return payload in the *UI shape* { atk, str, def }
+  const xpPayload = { atk: gained.atk, str: gained.str, def: gained.def };
+  return { xp: xpPayload, loot: lootNames };
 }

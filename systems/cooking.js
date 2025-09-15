@@ -49,7 +49,7 @@ function resolveRawId(recipeOrId){
 export function canCook(state, recipeOrId){
   const rawId = resolveRawId(recipeOrId);
   if (!rawId || !COOK_RECIPES[rawId]) return false;
-  if (state.action) return false; // busy with another action
+  //if (state.action) return false; // busy with another action
   return (state.inventory[rawId] || 0) > 0;
 }
 

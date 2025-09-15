@@ -57,7 +57,12 @@ function getRec(id){
 }
 function ioText(r){
   const parts = [];
-  (r.inputs||[]).forEach(inp => parts.push(`${inp.qty}× ${pretty(inp.id)}`));
+  const inputs = Array.isArray(r.inputs)
+    ? r.inputs.map(x=>({id:x.id, qty:x.qty}))
+    : (r.cost && typeof r.cost==='object'
+        ? Object.entries(r.cost).map(([id,qty])=>({id, qty}))
+        : []);
+  inputs.forEach(inp => parts.push(`${inp.qty}× ${pretty(inp.id)}`));
   if (r.mana) parts.push(`${r.mana}× Mana`);
   return parts.join(' · ');
 }
@@ -286,6 +291,21 @@ on(document, 'click', '#enchantList .craft-item', async (e, row)=>{
     const res = finishEnchant(state, rid);
     renderInventory(); // ensure inventory tile exists
 
+    // If effect was applied to equipped tool, log that; else fall back to old message
+    if (res?.appliedTo){
+      const baseOld = String(res.appliedTo.oldId).split('@')[0].split('#')[0];
+      const toolName = pretty(baseOld);
+      const r = getRec(rid) || {};
+      pushLog(`Enchanted ${toolName} with ${r.name || pretty(rid)} (+0.25 speed)`, 'enchanting');
+    } else {
+      const out = Array.isArray(res?.outputs) ? res.outputs[0] : null;
+      const outId = out?.id;
+      const r = getRec(rid) || {};
+      pushLog(`Enchanted ${pretty(outId || rid)} → +${r?.xp?.amount||0} Enchanting xp`, 'enchanting');
+    }
+    if (rec?.mana) pushLog(`Mana spent: ${rec.mana}`, 'enchanting');
+    (rec.inputs||[]).forEach(inp=> pushLog(`Consumed ${inp.qty}× ${pretty(inp.id)}`, 'enchanting'));
+    renderPanelLogs();
     // Animate the new tome (first output) from center → inventory
     const out = Array.isArray(res?.outputs) ? res.outputs[0] : (rec.outputs?.[0] || null);
     const outId = out?.id;

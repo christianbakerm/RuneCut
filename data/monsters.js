@@ -21,14 +21,23 @@ export const MONSTERS = [
   { id:'swamp_spider', name:'Swamp Spider', level:9, time:3600,
     zone:'Swamp', hp:63, attack:13, defense:10, maxHit:8,
     xp:{attack:30,strength:30,defense:30},
-    drops:[{gold:11, chance:0.7},{id:'silk_coil', chance:0.1}],
+    drops:[{gold:11, chance:0.7}],
     img:'assets/monsters/swamp_spider.png'
   },
   { id:'toxic_frog', name:'Toxic Frog', level:12, time:3800,
     zone:'Swamp', hp:85, attack:15, defense:11, maxHit:10,
     xp:{attack:36,strength:36,defense:36},
-    drops:[{gold:14, chance:0.7},{id:'venom_gland', chance:0.15}],
+    drops:[{gold:14, chance:0.7}],
     img:'assets/monsters/toxic_frog.png'
+  },
+  {
+    id: 'swamp_elemental', name: 'Swamp Elemental', level: 20,
+    zone: 'Swamp', hp: 120, attack: 18, defense: 14, maxHit: 12,
+    img: 'assets/monsters/swamp_elemental.png',
+    drops: [
+      { id: 'quicksilver', chance: 0.08, min: 1, max: 1 }
+    ],
+    xp: { atk: 70, str: 70, def: 70 }
   },
 
   /* ---------- Wastes ---------- */
@@ -66,25 +75,25 @@ export const MONSTERS = [
   /* ---------- Volcano ---------- */
   { id:'fire_mite', name:'Fire Mite', level:6, time:3000,
     zone:'Volcano', hp:40, attack:9, defense:7, maxHit:6,
-    xp:{attack:18,strength:18,defense:18},
+    xp:{attack:21,strength:21,defense:21},
     drops:[{gold:7, chance:0.7},{id:'ember_dust', chance:0.2}],
     img:'assets/monsters/fire_mite.png'
   },
   { id:'charred_bat', name:'Charred Bat', level:11, time:3400,
     zone:'Volcano', hp:70, attack:15, defense:11, maxHit:9,
-    xp:{attack:34,strength:34,defense:34},
+    xp:{attack:39,strength:39,defense:39},
     drops:[{gold:12, chance:0.7},{id:'bat_wing', chance:0.2}],
     img:'assets/monsters/charred_bat.png'
   },
   { id:'magma_goblin', name:'Magma Goblin', level:16, time:3800,
     zone:'Volcano', hp:115, attack:22, defense:17, maxHit:14,
-    xp:{attack:52,strength:52,defense:52},
+    xp:{attack:62,strength:62,defense:62},
     drops:[{gold:20, chance:0.7},{id:'goblin_claw', chance:0.15}],
     img:'assets/monsters/magma_goblin.png'
   },
   { id:'lava_hound', name:'Lava Hound', level:21, time:4200,
     zone:'Volcano', hp:170, attack:29, defense:23, maxHit:19,
-    xp:{attack:76,strength:76,defense:76},
+    xp:{attack:82,strength:82,defense:82},
     drops:[{gold:30, chance:0.7},{id:'molten_hide', chance:0.1}],
     img:'assets/monsters/lava_hound.png'
   },

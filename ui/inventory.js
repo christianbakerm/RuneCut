@@ -18,6 +18,7 @@ const elPopover = qs('#popover');
   const css = document.createElement('style');
   css.id = 'invEquipCSS';
   css.textContent = `
+    #inventory .icon-img.glow{ filter: drop-shadow(0 0 6px rgba(116,255,255,.85)) drop-shadow(0 0 16px rgba(116,255,255,.45)); }
     #inventory .inv-slot{ position:relative; }
     /* show small action buttons only on hover */
     #inventory .inv-slot .equip-quick,
@@ -125,28 +126,36 @@ function eatItem(id){
 /* ---------------- render ---------------- */
 export function renderInventory(){
   if (!elInv) return;
-  const entries = Object.entries(state.inventory || {});
+
+  const entries = Object.entries(state.inventory || {})
+    .filter(([, qty]) => (qty|0) > 0); // ignore empty stacks
+
   if (!entries.length){
     elInv.innerHTML = '<div class="muted">No items yet. Gather or fight to earn loot.</div>';
     return;
   }
 
   elInv.innerHTML = entries.map(([id, qty])=>{
-    const base = baseId(id);
-    const it   = ITEMS[base] || {};
+    const base    = baseId(id);
+    const it      = ITEMS[base] || {};
     const isEquip = it.type === 'equipment';
     const isFood  = (it.type === 'food') || (healAmountFor(id) > 0);
+
+    // simple material fallback image for ores/bars only; other materials should define their own img
     const isMat   = /^bar_|^ore_/.test(base);
     const imgSrc  = it.img || (isMat ? 'assets/materials/ore.png' : null);
+
     const tintCls = tintClassForItem(id);
+    const glowCls = it.glow ? ' glow' : '';
     const iconHtml = imgSrc
-      ? `<img src="${imgSrc}" class="icon-img${tintCls}" alt="">`
+      ? `<img src="${imgSrc}" class="icon-img${tintCls}${glowCls}" alt="${it.name || base}">`
       : `<span class="icon">${it.icon || '❔'}</span>`;
 
     const isTome = isEquip && (it.slot === 'tome');
 
     return `
-      <div class="inv-slot ${isEquip ? 'equip' : isFood ? 'food' : ''}" data-id="${id}">
+      <div class="inv-slot ${isEquip ? 'equip' : isFood ? 'food' : ''}"
+          data-id="${id}" draggable="true">
         ${iconHtml}
         ${isFood ? `<button class="use-btn" data-use="${id}" title="Eat">Eat</button>` : ''}
         <button class="sell-btn" data-sell="${id}">Sell</button>
@@ -199,6 +208,27 @@ on(elInv, 'click', '.inv-slot.equip', (e, tile)=>{
     renderEquipment();
     saveState(state);
   }
+});
+
+on(elInv, 'dragstart', '.inv-slot', (e, tile)=>{
+  const id  = tile.getAttribute('data-id') || '';
+  const qty = state.inventory?.[id] | 0;
+  if (!id || qty <= 0) return;
+
+  // standardize drag payload for all systems (equipment, enchanting, etc.)
+  if (e.dataTransfer){
+    e.dataTransfer.setData('application/x-runecut-item', id);
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.effectAllowed = 'copy';
+  }
+});
+
+on(document, 'dragstart', '#inventory .inv-slot', (e, tile)=>{
+  const id = tile.getAttribute('data-id') || '';
+  if (!id) return;
+  e.dataTransfer?.setData('application/x-runecut-item', id);
+  e.dataTransfer?.setData('text/plain', id);
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy';
 });
 
 /* ---------------- tooltip ---------------- */

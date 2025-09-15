@@ -1,43 +1,42 @@
 // /systems/fishing.js
 import { FISHING_SPOTS } from '../data/fishing.js';
 import { addItem } from './inventory.js';
-import { ITEMS } from '../data/items.js';  
+import { ITEMS } from '../data/items.js';
 import { buildXpTable, levelFromXp } from './xp.js';
 
 const XP_TABLE = buildXpTable();
 const speedFromLevel = (lvl)=> 1 + 0.03*(lvl-1); // +3% per Fishing level
 const clampMs = (ms)=> Math.max(100, ms);
-export const FOREST_ESSENCE_ID = 'sea_essence';
+
+// Essence (10% drop like other skills)
+export const SEA_ESSENCE_ID = 'sea_essence';
+// Compat alias (some older code referenced this misnamed identifier)
+export const FOREST_ESSENCE_ID = SEA_ESSENCE_ID;
+
+function baseId(id){ return String(id||'').split('@')[0]; }
 
 function rodSpeedFromState(state){
-  const rodId = state.equipment?.fishing;
-  const def = rodId ? ITEMS[rodId] : null;
-  return (def?.speed) || 1;
+  const rodId = state.equipment?.fishing || '';
+  const def   = ITEMS[baseId(rodId)] || {};
+  const base  = Number(def.speed || 1);
+  const swift = Number(state.equipmentMods?.fishing?.swift?.addSpeed || 0);
+  return base + swift;
 }
 
 /* ---------- helpers ---------- */
-export function listFishingSpots(state){
+export function listFishingSpots(_state){
   return FISHING_SPOTS;
 }
 
 function resolveSpot(state, spotOrId){
-  if (!spotOrId) {
-    return FISHING_SPOTS.find(s=>s.id===state.selectedSpotId) || FISHING_SPOTS[0];
-  }
-  if (typeof spotOrId === 'string') {
-    return FISHING_SPOTS.find(s=>s.id===spotOrId) || null;
-  }
-  if (spotOrId && spotOrId.id) {
-    return FISHING_SPOTS.find(s=>s.id===spotOrId.id) || spotOrId;
-  }
+  if (!spotOrId) return FISHING_SPOTS.find(s=>s.id===state.selectedSpotId) || FISHING_SPOTS[0] || null;
+  if (typeof spotOrId === 'string') return FISHING_SPOTS.find(s=>s.id===spotOrId) || null;
+  if (spotOrId && spotOrId.id) return FISHING_SPOTS.find(s=>s.id===spotOrId.id) || spotOrId;
   return null;
 }
 
-function requiredLevel(spot){
-  return spot.level || 1;
-}
+function requiredLevel(spot){ return spot.level || 1; }
 
-/** Level-only check */
 export function isSpotUnlocked(state, spotOrId){
   const spot = resolveSpot(state, spotOrId);
   if (!spot) return false;
@@ -47,7 +46,7 @@ export function isSpotUnlocked(state, spotOrId){
 
 /* ---------- ui-facing api ---------- */
 export function canFish(state, spotOrId){
-  if (state.action) return false;             // busy -> cannot start
+  //if (state.action) return false;
   const spot = resolveSpot(state, spotOrId);
   if (!spot) return false;
   return isSpotUnlocked(state, spot);
@@ -89,7 +88,8 @@ export function finishFish(state, spotOrId){
 
   addItem(state, spot.drop, 1);
   const essence = Math.random() < 0.10;
-  if (essence) addItem(state, FOREST_ESSENCE_ID, 1);
+  if (essence) addItem(state, SEA_ESSENCE_ID, 1);
+
   state.fishXp = (state.fishXp || 0) + (spot.xp || 0);
   state.action = null;
   return { qty: 1, essence };

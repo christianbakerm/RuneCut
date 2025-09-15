@@ -36,6 +36,21 @@ export const ITEMS = {
       sell: 12,
       img: 'assets/materials/rock-essence.png'
     },
+    quicksilver: {
+      id: 'quicksilver',
+      name: 'Quicksilver',
+      type: 'material',
+      sell: 12,
+      img: 'assets/materials/quicksilver.png' 
+    },
+    quicksilver_e: {
+      id: 'quicksilver_e',
+      name: 'Quicksilver(e)',
+      img: 'assets/materials/quicksilver.png', 
+      glow: true,                             
+      sell: 30, type: 'material'
+    },
+    // 
     wire_coil: { id:'wire_coil',  name:'Wire Coil',  type:'resource', sell:2,  img:'assets/materials/wire-coil.png' },
     silk_coil: { id:'silk_coil',  name:'Silk Coil',  type:'resource', sell:2,  img:'assets/materials/silk-coil.png' },
     nylon_coil: { id:'nylon_coil',  name:'Nylom Coil',  type:'resource', sell:2,  img:'assets/materials/nylon-coil.png' },

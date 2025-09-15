@@ -19,6 +19,7 @@ export function defaultState(){
       amulet:null, ring:null, cape:null
     },
 
+    equipmentMods: {},
     // UI/logging
     logs: [],
     logFilter: 'all',

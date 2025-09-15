@@ -19,7 +19,7 @@ export const ENCHANT_RECIPES = {
     id: 'tome_sea_novice',
     name: 'Enchant Novice Sea Tome',
     level: 1,
-    time: 2000,
+    time: 1700,
     mana: 5,
     inputs: [
       { id: 'book', qty: 1 },
@@ -34,7 +34,7 @@ export const ENCHANT_RECIPES = {
     id: 'tome_rock_novice',
     name: 'Enchant Novice Rock Tome',
     level: 1,
-    time: 2000,
+    time: 1700,
     mana: 5,
     inputs: [
       { id: 'book', qty: 1 },
@@ -44,5 +44,16 @@ export const ENCHANT_RECIPES = {
       { id: 'tome_rock_novice', qty: 1 }
     ],
     xp: { skill: 'enchant', amount: 25 }
-  }
+  },
+  swift_tools_I: {
+    id: 'swift_tools_I',
+    name: 'Swiftness (I)',
+    level: 10,
+    time: 1700,
+    mana: 20,
+    inputs: [{ id: 'quicksilver', qty: 1 }],
+    outputs: [{ id: 'quicksilver_e', qty: 1 }],
+    xp: { skill: 'enchant', amount: 100 },
+    desc: 'Imbues quicksilver with speed magic. Drag onto a tool to apply +0.25 speed (non-stacking).'
+  },
 };

@@ -5,43 +5,76 @@ import { showTip, hideTip } from './tooltip.js';
 import { ITEMS } from '../data/items.js';
 import { derivePlayerStats, hpMaxFor } from '../systems/combat.js';
 import { MONSTERS } from '../data/monsters.js';
+import { getConsumableEffect } from '../data/enchant_effects.js';
 import { renderInventory } from './inventory.js';
+import { removeItem } from '../systems/inventory.js';
 import { ensureMana, manaMaxFor, startManaRegen, onManaChange } from '../systems/mana.js';
 import { ensureTomeEngine, tomeRemainingMs, tomeDurationMsFor } from '../systems/tomes.js';
 
-// DOM roots
+// ---------- DOM roots ----------
 const grid = qs('#equipmentGrid');
 const elMpText = qs('#charManaText');
 const elMpBar  = qs('#charManaBar');
 const elMpLbl  = qs('#charManaLabel');
 
-/* ---------------- ensure CSS for stack badge on slots ---------------- */
-(function ensureEquipQtyCSS(){
-  if (document.getElementById('equipQtyCSS')) return;
-  const css = document.createElement('style');
-  css.id = 'equipQtyCSS';
-  css.textContent = `
-    #equipmentGrid .slot{ position:relative; }
-    #equipmentGrid .slot .qty-badge{
-      position:absolute; right:4px; top:4px;
-      font-size:11px; line-height:16px; padding:0 6px;
-      background:rgba(0,0,0,.65); color:#fff; border-radius:10px;
-      pointer-events:none;
-    }
-    /* Eat button for the food slot (hover-reveal) */
-    #equipmentGrid .slot .eat-btn{
-      position:absolute; left:4px; bottom:4px;
-      font-size:11px; line-height:14px; padding:2px 6px;
-      opacity:0; pointer-events:none; transition:opacity .15s ease;
-    }
-    #equipmentGrid .slot:hover .eat-btn{
-      opacity:1; pointer-events:auto;
-    }
-  `;
-  document.head.appendChild(css);
+// ---------- one-time CSS ----------
+(function injectEquipCSS(){
+  if (!document.getElementById('equipSwiftCSS')) {
+    const css = document.createElement('style');
+    css.id = 'equipSwiftCSS';
+    css.textContent = `
+      .equip-grid .slot.drop-ok{ outline:2px solid gold; box-shadow:0 0 12px rgba(255,215,0,.6) inset; }
+    `;
+    document.head.appendChild(css);
+  }
+  if (!document.getElementById('equipQtyCSS')) {
+    const css = document.createElement('style');
+    css.id = 'equipQtyCSS';
+    css.textContent = `
+      #equipmentGrid .slot{ position:relative; }
+      #equipmentGrid .slot .qty-badge{
+        position:absolute; right:4px; top:4px;
+        font-size:11px; line-height:16px; padding:0 6px;
+        background:rgba(0,0,0,.65); color:#fff; border-radius:10px;
+        pointer-events:none;
+      }
+      #equipmentGrid .slot .eat-btn{
+        position:absolute; left:4px; bottom:4px;
+        font-size:11px; line-height:14px; padding:2px 6px;
+        opacity:0; pointer-events:none; transition:opacity .15s ease;
+      }
+      #equipmentGrid .slot:hover .eat-btn{ opacity:1; pointer-events:auto; }
+
+      /* Enchant badge (tier display) */
+      #equipmentGrid .slot .enchant-badge{
+        position:absolute; left:4px; top:4px;
+        font-size:11px; line-height:16px; padding:0 6px;
+        background:rgba(255,215,0,.15); color:#ffd700;
+        border:1px solid rgba(255,215,0,.5);
+        border-radius:10px; pointer-events:none;
+        text-shadow:0 0 6px rgba(255,215,0,.5);
+      }
+
+      /* Drop target highlight */
+      .equip-grid .equip-cell.drag-target .slot{
+        outline:2px dashed rgba(255,215,0,.6);
+      }
+
+      /* Small pulse when enchant applied */
+      .equip-grid .equip-cell .slot.enchanted-pulse{
+        animation: enchantPulse .35s ease;
+      }
+      @keyframes enchantPulse{
+        0%{ box-shadow:0 0 0 rgba(255,215,0,0); }
+        50%{ box-shadow:0 0 18px rgba(255,215,0,.8); }
+        100%{ box-shadow:0 0 0 rgba(255,215,0,0); }
+      }
+    `;
+    document.head.appendChild(css);
+  }
 })();
 
-/* ---------------- metal/tint helpers ---------------- */
+// ---------- helpers ----------
 function parseId(id=''){
   const [base, qStr] = String(id).split('@');
   const qNum = parseInt(qStr,10);
@@ -62,8 +95,41 @@ function tintClassForItem(id=''){
   const m = metalFromItemId(id);
   return m ? ` tint-${m}` : '';
 }
+const baseId = id => String(id||'').split('@')[0];
+function healAmountForBase(base){
+  const def = ITEMS[base] || {};
+  return Number.isFinite(def.heal) ? def.heal : 0;
+}
+function ensureModsSlot(slot){
+  state.equipmentMods = state.equipmentMods || {};
+  state.equipmentMods[slot] = state.equipmentMods[slot] || {};
+  return state.equipmentMods[slot];
+}
+function toolHasSpeedStat(toolId){
+  const def = ITEMS[baseId(toolId)] || {};
+  return Number.isFinite(def.speed) || !!def.speed;
+}
+function roman(n){ return ['','I','II','III','IV','V','VI','VII','VIII','IX','X'][n]||String(n); }
 
-/* ---------------- slot helpers ---------------- */
+// ---------- draggable inventory (generic) ----------
+on(document, 'dragstart', '#inventory .inv-slot', (e, slot)=>{
+  const id = slot.getAttribute('data-id') || '';
+  if (!id) return;
+  slot.setAttribute('draggable','true');
+  e.dataTransfer?.setData('application/x-runecut-item', id);
+  e.dataTransfer?.setData('text/plain', id);
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy';
+});
+
+// ensure inventory slots remain draggable as the inventory re-renders
+const invObs = new MutationObserver(()=>{
+  const inv = document.getElementById('inventory');
+  if (!inv) return;
+  inv.querySelectorAll('.inv-slot').forEach(s=> s.setAttribute('draggable','true'));
+});
+invObs.observe(document.body, { childList:true, subtree:true });
+
+// ---------- equip-slot helpers ----------
 function slotEl(slot){ return grid?.querySelector(`.equip-cell[data-slot="${slot}"] .slot`); }
 function fallbackIcon(slot){
   const map = {
@@ -71,12 +137,10 @@ function fallbackIcon(slot){
     weapon:'🗡️', body:'🧥', shield:'🛡️',
     gloves:'🧤', legs:'👖', boots:'🥾',
     ring:'💍', axe:'🪓', pick:'⛏️', tome:'📖',
-    food:'🍖', fishing: '🎣'
+    food:'🍖', fishing:'🎣'
   };
   return map[slot] || '⬜';
 }
-
-// Produce image HTML for a given item id (with tint + fallback ore sprite if needed)
 function iconHtmlForId(id){
   const base = String(id).split('@')[0];
   const def = ITEMS[base] || {};
@@ -90,17 +154,20 @@ function iconHtmlForId(id){
 
 function setSlot(slot, id){
   const el = slotEl(slot); if (!el) return;
-  el.classList.remove('empty','has-item');
+  el.classList.remove('empty','has-item','enchanted-pulse');
   el.innerHTML = '';
+  el.dataset.itemId = id || '';
+
   if (!id){
     el.classList.add('empty');
     el.innerHTML = `<span class="icon">${fallbackIcon(slot)}</span><button class="unequip-x" data-unequip="${slot}" title="Unequip">✕</button>`;
-    el.dataset.itemId = '';
+    el.querySelector('.qty-badge')?.remove();
+    el.querySelector('.enchant-badge')?.remove();
     return;
   }
+
   el.classList.add('has-item');
   el.innerHTML = `${iconHtmlForId(id)}<button class="unequip-x" data-unequip="${slot}" title="Unequip">✕</button>`;
-  el.dataset.itemId = id;
 
   // Tome stack badge
   if (slot === 'tome'){
@@ -113,7 +180,7 @@ function setSlot(slot, id){
     }
   }
 
-  // Food stack badge
+  // Food stack + eat
   if (slot === 'food'){
     const n = Math.max(0, state.equipment?.foodQty|0);
     if (n >= 1){
@@ -130,10 +197,22 @@ function setSlot(slot, id){
       el.appendChild(eat);
     }
   }
+
+  // Enchant badge (e.g. Swiftness I)
+  el.querySelector('.enchant-badge')?.remove();
+  const mods = state.equipmentMods?.[slot] || {};
+  const swift = mods.swift;
+  if (swift){
+    const span = document.createElement('span');
+    span.className = 'enchant-badge';
+    span.title = `+${swift.addSpeed ?? 0} speed`;
+    span.textContent = `⚡ ${roman(swift.tier ?? 1)}`;
+    el.appendChild(span);
+  }
 }
 
-// Eat button on the food slot
-on(grid, 'click', '.eat-btn[data-eat-food]', (e, btn)=>{
+// ---------- eat on food slot ----------
+on(grid, 'click', '.eat-btn[data-eat-food]', ()=>{
   const slots = state.equipment || {};
   const base  = slots.food;
   const qty   = Math.max(0, slots.foodQty|0);
@@ -143,26 +222,25 @@ on(grid, 'click', '.eat-btn[data-eat-food]', (e, btn)=>{
   if (heal <= 0) return;
 
   const max = hpMaxFor(state);
-  if (state.hpCurrent >= max) return; // no overheal
+  if ((state.hpCurrent ?? max) >= max) return;
 
-  state.hpCurrent = Math.min(max, state.hpCurrent + heal);
+  state.hpCurrent = Math.min(max, (state.hpCurrent ?? max) + heal);
   slots.foodQty = Math.max(0, qty - 1);
   if (slots.foodQty === 0){
-    // clear slot when empty
     slots.food = '';
   }
   window.dispatchEvent(new Event('hp:change'));
-  window.dispatchEvent(new Event('food:change')); 
+  window.dispatchEvent(new Event('food:change'));
   renderEquipment();
   saveState(state);
 });
 
-// Unequip
+// ---------- unequip (single handler; no duplicates) ----------
 on(grid, 'click', '.unequip-x', (e, btn)=>{
   const slot = btn.getAttribute('data-unequip');
   if (!slot) return;
 
-  // Special handling for FOOD (return stack)
+  // Food returns stack
   if (slot === 'food'){
     const base = state.equipment?.food;
     const qty  = Math.max(0, state.equipment?.foodQty|0);
@@ -180,21 +258,68 @@ on(grid, 'click', '.unequip-x', (e, btn)=>{
     return;
   }
 
-  // Existing behavior for other slots (tome logic already present in your code)
+  // Normal slots (tome-safe handled in systems/equipment.js)
   const ok = unequipItem(state, slot);
-  if (!ok && slot === 'tome') { /* optional toast */ }
+  if (!ok && slot === 'tome') {
+    // optional toast that tomes can’t be unequipped while active
+  }
   saveState(state);
   renderInventory();
   renderEquipment();
 });
 
-// get heal amount 
-function healAmountForBase(base){
-  const def = ITEMS[base] || {};
-  return Number.isFinite(def.heal) ? def.heal : 0;
+// ---------- apply consumable to a slot (generic & tiered) ----------
+function applyConsumableEnchantToSlot(consumableId, slot){
+  const eff = getConsumableEffect(consumableId);
+  const toolId = state.equipment?.[slot];
+
+  if (!eff) return { ok:false, reason:'no-effect' };
+  if (!toolId) return { ok:false, reason:'no-tool' };
+  if (!eff.slots.includes(slot)) return { ok:false, reason:'bad-slot' };
+  if (!toolHasSpeedStat(toolId)) return { ok:false, reason:'not-speed-tool' };
+
+  const invKey = baseId(consumableId);
+  if ((state.inventory[invKey]||0) <= 0) return { ok:false, reason:'no-item' };
+
+  const mods = ensureModsSlot(slot);
+  const cur = mods[eff.group]; // e.g. 'swift'
+  if (cur && cur.tier >= eff.tier) return { ok:false, reason:'already-high' };
+
+  removeItem(state, invKey, 1);
+  mods[eff.group] = { tier: eff.tier, addSpeed: eff.addSpeed, from: invKey };
+  saveState(state);
+  return { ok:true, eff, slot };
 }
 
-/* ---------------- character panel ---------------- */
+// ---------- DnD targets on equipment grid ----------
+on(document, 'dragover', '.equip-cell', (e, cell)=>{
+  e.preventDefault();
+  cell.classList.add('drag-target');
+});
+on(document, 'dragleave', '.equip-cell', (_e, cell)=>{
+  cell.classList.remove('drag-target');
+});
+on(document, 'drop', '.equip-cell', (e, cell)=>{
+  e.preventDefault();
+  cell.classList.remove('drag-target');
+
+  const slot = cell?.dataset?.slot;
+  const dragged =
+    e.dataTransfer?.getData('application/x-runecut-item') ||
+    e.dataTransfer?.getData('text/plain') || '';
+  if (!slot || !dragged) return;
+
+  const res = applyConsumableEnchantToSlot(dragged, slot);
+  if (res.ok){
+    const slotDiv = cell.querySelector('.slot');
+    slotDiv?.classList.add('enchanted-pulse');
+    setTimeout(()=> slotDiv?.classList.remove('enchanted-pulse'), 380);
+    renderInventory();
+    renderEquipment();
+  }
+});
+
+// ---------- character HUD ----------
 function renderCharacter(){
   const elHpText = qs('#charHpText');
   const elAtk    = qs('#charAtk');
@@ -222,7 +347,6 @@ function renderCharacter(){
   if (elMpBar)  elMpBar.style.width  = `${mpPct}%`;
   if (elMpLbl)  elMpLbl.textContent  = `${curMp}/${maxMp}`;
 
-  // Accuracy context vs selected monster
   const monSel = qs('#monsterSelect');
   const mon = monSel ? MONSTERS.find(m=>m.id===monSel.value) : null;
 
@@ -230,86 +354,41 @@ function renderCharacter(){
   if (elAtk)  elAtk.textContent = ps.atkBonus ?? 0;
   if (elStr)  elStr.textContent = ps.strBonus ?? 0;
   if (elDef)  elDef.textContent = ps.defBonus ?? 0;
-
   if (elMaxHit) elMaxHit.textContent = ps.maxHit ?? 1;
   if (elAcc)    elAcc.textContent    = mon ? `${Math.round((ps.acc||0)*100)}%` : '—';
   if (elDefB)   elDefB.textContent   = `+${ps.defBonus ?? 0}`;
 }
 
-/* ---------------- public render ---------------- */
-export function renderEquipment(){
-  if (!grid) return;
-  const slots = state.equipment || {};
-  Object.keys(slots).forEach(slot => {
-    if (slot === 'tome' && !slots[slot]) {
-      // ensure stack qty badge is cleared if no tome equipped
-      const el = slotEl('tome'); if (el) el.querySelector('.qty-badge')?.remove();
-    }
-    setSlot(slot, slots[slot]);
-  });
-
-  startManaRegen(state, ()=>{
-    // Lightweight HUD refresh when mana ticks
-    renderCharacter();
-    saveState(state);
-  });
-
-  renderCharacter();
-  ensureTomeEngine(state);
-}
-
-onManaChange(() => {
-  // lightweight: just repaint the character HUD
-  // (you already have renderCharacter() inside this module)
-  try { renderCharacter(); } catch {}
-});
-
-window.addEventListener('hp:change', () => {
-  try { renderCharacter(); } catch {}
-});
-
-/* ---------------- events ---------------- */
-// Unequip
-on(grid, 'click', '.unequip-x', (e, btn)=>{
-  const slot = btn.getAttribute('data-unequip');
-  if (!slot) return;
-  // For tome: unequip is ignored while active (systems handles that)
-  const ok = unequipItem(state, slot);
-  if (!ok && slot === 'tome') {
-    // Optional: could show a tooltip/toast that tomes can’t be unequipped mid-run
-  }
-  saveState(state);
-  renderInventory();
-  renderEquipment();
-});
-
-// Tooltip on equipped slot
+// ---------- tooltips (restored) ----------
 on(grid, 'mousemove', '.slot', (e, slotDiv)=>{
   const id = slotDiv.dataset.itemId;
-  const slot = slotDiv.closest('.equip-cell')?.dataset.slot || 'slot';
+  const slotName = slotDiv.closest('.equip-cell')?.dataset.slot || 'slot';
+
+  // Empty slot -> simple tooltip
   if (!id){
-    showTip(e, `${slot[0].toUpperCase()+slot.slice(1)}`, 'Empty');
+    const title = slotName.charAt(0).toUpperCase() + slotName.slice(1);
+    showTip(e, title, 'Empty');
     return;
   }
+
   const { base, q } = parseId(id);
   const def = ITEMS[base] || {};
-
-  const title = `${def.name || base}`;
-
   const mult = q ? q/100 : 1;
-  const lines = [];
 
+  const lines = [];
   if (q != null) lines.push(`Quality: ${q}%`);
 
-  if (slot === 'food'){
+  // Food: heal + stack size
+  if (slotName === 'food'){
     const heal = healAmountForBase(base);
     const qty  = Math.max(0, state.equipment?.foodQty|0);
     if (heal > 0) lines.push(`Heals: ${heal} HP`);
     lines.push(`Stack: ×${qty}`);
-    showTip(e, title, lines.join('\n'));
+    showTip(e, def.name || base, lines.join('\n'));
     return;
   }
 
+  // Normal stat lines
   const stats = [];
   if (def.atk) stats.push(`Atk: ${Math.round(def.atk*mult)}`);
   if (def.str) stats.push(`Str: ${Math.round(def.str*mult)}`);
@@ -317,11 +396,16 @@ on(grid, 'mousemove', '.slot', (e, slotDiv)=>{
   if (def.hp)  stats.push(`HP: ${Math.round(def.hp*mult)}`);
   if (stats.length) lines.push(stats.join(' · '));
 
-  if (def.speed) lines.push(`Speed: ${Number(def.speed).toFixed(2)}×`);
+  // Speed (include enchant bonus if present)
+  if (def.speed){
+    const mod = state.equipmentMods?.[slotName]?.swift?.addSpeed || 0;
+    const total = Number(def.speed) + Number(mod || 0);
+    lines.push(`Speed: ${Number(def.speed).toFixed(2)}×${mod ? `  (+${mod.toFixed(2)} → ${total.toFixed(2)}×)` : ''}`);
+  }
 
+  // Tome details (if applicable)
   if (def.slot === 'tome' && def.tome){
     const qty = Math.max(0, state.equipment?.tomeQty|0);
-    const minLv = def.tome.minLevel || 1;
     const baseSec = def.tome.baseSec || def.tome.minSeconds || 15;
     const maxSec  = def.tome.maxSec  || def.tome.maxSeconds || 30;
     const resId   = def.tome.dropId || def.tome.resourceId;
@@ -329,15 +413,18 @@ on(grid, 'mousemove', '.slot', (e, slotDiv)=>{
     lines.push(`Auto-gathers: ${resName}`);
     lines.push(`Duration per tome: ${baseSec}–${maxSec}s (scales with Enchanting)`);
 
-    const remMs = tomeRemainingMs(state);
-    const perMs = tomeDurationMsFor(state, base);
-    const totalMs = remMs + Math.max(0, qty-1)*perMs;
-    lines.push(`Equipped stack: ×${Math.max(1, qty)}`);
-    if (remMs > 0) lines.push(`Active run remaining: ${Math.ceil(remMs/1000)}s`);
-    if (totalMs > 0) lines.push(`Total remaining: ${Math.ceil(totalMs/1000)}s`);
+    // live timing (if you want it)
+    try {
+      const remMs = tomeRemainingMs(state);
+      const perMs = tomeDurationMsFor(state, base);
+      const totalMs = remMs + Math.max(0, qty-1)*perMs;
+      lines.push(`Equipped stack: ×${Math.max(1, qty)}`);
+      if (remMs > 0) lines.push(`Active run remaining: ${Math.ceil(remMs/1000)}s`);
+      if (totalMs > 0) lines.push(`Total remaining: ${Math.ceil(totalMs/1000)}s`);
+    } catch {}
   }
 
-  showTip(e, title, lines.join('\n'));
+  showTip(e, def.name || base, lines.join('\n'));
 });
 
 on(grid, 'mouseout', '.slot', (e, slotDiv)=>{
@@ -346,9 +433,30 @@ on(grid, 'mouseout', '.slot', (e, slotDiv)=>{
 });
 grid?.addEventListener('mouseleave', hideTip);
 
-// Recompute accuracy if monster changes
-on(document, 'change', '#monsterSelect', ()=> renderEquipment());
 
-// Refresh equipment UI when tome stack changes or ends
+// ---------- public render ----------
+export function renderEquipment(){
+  if (!grid) return;
+  const slots = state.equipment || {};
+  Object.keys(slots).forEach(slot => {
+    if (slot === 'tome' && !slots[slot]) {
+      const el = slotEl('tome'); if (el) el.querySelector('.qty-badge')?.remove();
+    }
+    setSlot(slot, slots[slot]);
+  });
+
+  startManaRegen(state, ()=>{
+    renderCharacter();
+    saveState(state);
+  });
+
+  renderCharacter();
+  ensureTomeEngine(state);
+}
+
+// lightweight repaints
+onManaChange(()=> { try { renderCharacter(); } catch {} });
+window.addEventListener('hp:change', ()=> { try { renderCharacter(); } catch {} });
+on(document, 'change', '#monsterSelect', ()=> renderEquipment());
 window.addEventListener('tome:stack', ()=> renderEquipment());
 window.addEventListener('tome:end',  ()=> renderEquipment());

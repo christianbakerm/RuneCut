@@ -53,7 +53,7 @@ export function maxSmeltable(state, outId='bar_copper'){
   return Math.min(...r.inputs.map(inp => Math.floor((state.inventory[inp.id]||0) / inp.qty)));
 }
 export function startSmelt(state, outId='bar_copper', onDone){
-  if(state.action) return false;
+  //if(state.action) return false;
   const r = SMELT_RECIPES[outId]; if(!r) return false;
 
   const need = r.level || 1;
@@ -106,7 +106,7 @@ export function canForge(state, outId){
   return barsOk && extrasOk && (lvl >= need);
 }
 export function startForge(state, outId, onDone){
-  if(state.action) return false;
+  //if(state.action) return false;
   const rec = FORGE_RECIPES.find(x=>x.id===outId); if(!rec) return false;
   if(!canForge(state, outId)) return false;
 

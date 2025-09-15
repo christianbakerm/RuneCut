@@ -1,6 +1,6 @@
 // /systems/woodcutting.js
 import { TREES } from '../data/woodcutting.js';
-import { ITEMS } from '../data/items.js';         
+import { ITEMS } from '../data/items.js';
 import { addItem } from './inventory.js';
 import { buildXpTable, levelFromXp } from './xp.js';
 
@@ -8,6 +8,13 @@ const XP_TABLE = buildXpTable();
 const speedFromLevel = (lvl)=> 1 + 0.03*(lvl-1);  // +3% per Woodcutting level
 const clampMs = (ms)=> Math.max(100, ms);         // floor so actions aren’t instant
 export const FOREST_ESSENCE_ID = 'forest_essence';
+
+/* ----------- swiftness / equipment mod helper ----------- */
+const modSpeed = (state, slot) => {
+  const m = state?.equipmentMods?.[slot] || {};
+  if (typeof m.swift === 'object') return Number(m.swift.addSpeed || 0);   // new shape
+  return Number(m.speedBonus || 0);                                        // legacy shape
+};
 
 /* ---------------- helpers ---------------- */
 export function listTrees(_state){
@@ -32,15 +39,16 @@ function requiredLevel(tree){
 }
 
 function axeSpeedFromState(state){
-  // If your axes have a .speed stat in ITEMS, this applies; otherwise defaults to 1
   const axeId = state.equipment?.axe;
-  const def = axeId ? ITEMS[axeId] : null;
-  return (def?.speed) || 1;
+  const base = axeId ? String(axeId).split('@')[0] : '';
+  const def = base ? ITEMS[base] : null;
+  const baseSpeed = (def?.speed) || 1;
+  return baseSpeed + modSpeed(state, 'axe');
 }
 
 /* ---------------- ui-facing api ---------------- */
 export function canChop(state, treeOrId){
-  if (state.action) return false; // busy
+  //if (state.action) return false; // busy
   const t = resolveTree(state, treeOrId);
   if (!t) return false;
 
@@ -55,9 +63,9 @@ export function startChop(state, treeOrId, onDone){
   if (!t || !canChop(state, t)) return false;
 
   const wcLvl    = levelFromXp(state.wcXp || 0, XP_TABLE);
-  const axeSpeed = axeSpeedFromState(state);
+  const axeSpd   = axeSpeedFromState(state);
   const baseTime = t.baseTime || 2000;
-  const dur      = clampMs(baseTime / (axeSpeed * speedFromLevel(wcLvl)));
+  const dur      = clampMs(baseTime / (axeSpd * speedFromLevel(wcLvl)));
   const now      = performance.now();
 
   state.selectedTreeId = t.id;
@@ -71,7 +79,6 @@ export function startChop(state, treeOrId, onDone){
     treeId: t.id
   };
 
-  // Timed completion
   setTimeout(()=>{
     if (state.action?.type === 'chop' && state.action?.treeId === t.id){
       onDone?.();
