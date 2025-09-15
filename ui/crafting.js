@@ -220,7 +220,7 @@ function renderPagesCard(containerEl){
 // Click a normal craft card → craft 1
 on(document, 'click', '#craftList .craft-card', (e, btn) => {
   if (btn.querySelector('#pagesCraftBtn')) return; // Pages card uses its own button
-  if (state.action) return;
+  //if (state.action) return;
   const id = btn.dataset.id; if (!id) return;
   if (!canCraft(state, id)) return;
 
@@ -272,7 +272,7 @@ on(document, 'change', '#pagesLogSelect', (e, sel)=>{
 
 // Pages craft button
 on(document, 'click', '#pagesCraftBtn', (e, btn)=>{
-  if (state.action) return;
+  //if (state.action) return;
   const card = btn.closest('.craft-card');
   const sel  = card?.querySelector('#pagesLogSelect');
   const rid  = sel?.value;

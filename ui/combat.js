@@ -38,27 +38,82 @@ const overlayEls = {
   monNameHud:    qs('#monName'),
 };
 
-// ----- cooldown control for combat turns (unchanged) -----
+/* ----------------------------- Drops preview helpers ----------------------------- */
+
+// rarity buckets -> CSS classes
+function rarityFromChance(p = 0){
+  if (p >= 0.20)  return 'common';
+  if (p >= 0.05)  return 'uncommon';
+  if (p >= 0.01)  return 'rare';
+  if (p >= 0.002) return 'epic';
+  return 'legendary';
+}
+function fmtPct(p = 0){
+  return `${Math.max(0.01, +(p*100).toFixed(p < 0.01 ? 2 : 1))}%`;
+}
+function itemIconHtml(id){
+  const it = ITEMS?.[id] || {};
+  const src = it.img || null;
+  if (src) return `<img src="${src}" alt="">`;
+  return `<span class="icon">${it.icon || '🎁'}</span>`;
+}
+
+// discovery helpers
+function dropKey(d){
+  if (!d) return null;
+  if (d.id)   return `item:${d.id}`;
+  if (d.gold) return `gold:${d.gold}`;
+  return null;
+}
+function isDiscovered(d){
+  const k = dropKey(d);
+  return !!(k && state.discoveredDrops && state.discoveredDrops[k]);
+}
+
+function chipHtmlForDrop(d){
+  const known = isDiscovered(d);
+  if (!known){
+    return `<span class="drop-chip unknown" title="Undiscovered"><span class="icon">?</span><span class="name">Unknown</span></span>`;
+  }
+  if (d.id){
+    const it = ITEMS?.[d.id] || {};
+    const name = it.name || d.id;
+    const rar = rarityFromChance(d.chance || 0);
+    const tip = `${name} — ${fmtPct(d.chance || 0)}`;
+    return `<span class="drop-chip ${rar}" title="${tip}">${itemIconHtml(d.id)}<span class="name">${name}</span></span>`;
+  }
+  if (d.gold){
+    const rar = rarityFromChance(d.chance || 0);
+    const name = `${d.gold}g`;
+    const tip = `${name} — ${fmtPct(d.chance || 0)}`;
+    return `<span class="drop-chip ${rar}" title="${tip}"><span class="icon">🪙</span><span class="name">${name}</span></span>`;
+  }
+  return '';
+}
+
+// small dot for grid cards (top 3)
+function dotClassForChance(p = 0){ return rarityFromChance(p); }
+
+/* ----------------------------- Combat loop & HUD ----------------------------- */
+
 const ATK_COOLDOWN_MS = 500;
 let atkCooldownUntil = 0;
 const nowMs = () => performance.now();
 
-// ----- micro-anim helpers -----
-function pulse(el, cls, ms=300){
-  if(!el) return;
+function pulse(el, cls, ms = 300){
+  if (!el) return;
   el.classList.add(cls);
-  setTimeout(()=>el.classList.remove(cls), ms);
+  setTimeout(()=> el.classList.remove(cls), ms);
 }
 
-// Floating numbers
-function bubbleDamage(anchorBarEl, amount, kind='dealt', {crit=false, slam=false, text=null} = {}){
+function bubbleDamage(anchorBarEl, amount, kind = 'dealt', { crit=false, slam=false, text=null } = {}){
   if (!anchorBarEl) return;
   const progress = anchorBarEl.closest('.progress');
   let host = progress?.parentElement || anchorBarEl.parentElement || anchorBarEl;
 
   const cs = host ? getComputedStyle(host) : null;
   if (host && cs && cs.position === 'static') host.style.position = 'relative';
-  if (host && cs && (cs.overflow === 'hidden' || cs.overflowX === 'hidden' || cs.overflowY === 'hidden')) {
+  if (host && cs && (cs.overflow === 'hidden' || cs.overflowX === 'hidden' || cs.overflowY === 'hidden')){
     host = host.parentElement || host;
     const cs2 = getComputedStyle(host);
     if (cs2.position === 'static') host.style.position = 'relative';
@@ -70,15 +125,13 @@ function bubbleDamage(anchorBarEl, amount, kind='dealt', {crit=false, slam=false
   host.appendChild(d);
   d.addEventListener('animationend', ()=> d.remove(), { once:true });
 }
-
-// Small helper for healing bubbles
 function bubbleHeal(anchorBarEl, amount){
   bubbleDamage(anchorBarEl, amount, 'heal', { text: `+${amount}` });
 }
 
 function currentMonster(){
   const id = state.selectedMonsterId;
-  return MONSTERS.find(m=>m.id===id) || MONSTERS[0] || null;
+  return MONSTERS.find(m => m.id === id) || MONSTERS[0] || null;
 }
 
 function setBar(bar, label, cur, max){
@@ -92,7 +145,6 @@ function healAmountForBase(baseId){
   const def = ITEMS[baseId] || {};
   return Number.isFinite(def.heal) ? def.heal : 0;
 }
-
 function canEat(){
   const slots = state.equipment || {};
   const base  = slots.food;
@@ -103,7 +155,6 @@ function canEat(){
   const max = hpMaxFor(state);
   return (state.hpCurrent ?? max) < max;
 }
-
 function doEatOnce(){
   const slots = state.equipment || {};
   const base  = slots.food;
@@ -124,11 +175,8 @@ function doEatOnce(){
   state.hpCurrent = Math.min(max, cur + heal);
   qty -= 1;
   slots.foodQty = Math.max(0, qty);
-  if (slots.foodQty === 0){
-    slots.food = '';
-  }
+  if (slots.foodQty === 0) slots.food = '';
 
-  // FX + log
   pulse(overlayEls.playerHpBar, 'flash-heal', 350);
   bubbleHeal(overlayEls.playerHpBar, healed);
   if (overlayEls.log){
@@ -138,7 +186,6 @@ function doEatOnce(){
     overlayEls.log.scrollTop = overlayEls.log.scrollHeight;
   }
 
-  // Broadcast & UI refresh
   try { window.dispatchEvent(new Event('hp:change')); } catch {}
   try { window.dispatchEvent(new Event('food:change')); } catch {}
   renderEquipment();
@@ -171,10 +218,10 @@ function paintHud(){
   // Buttons
   const inFight = !!state.combat;
 
-  // Start Fight is disabled in-fight or if no monster
+  // Start Fight disabled in-fight or if no monster
   if (overlayEls.fightBtn)  overlayEls.fightBtn.disabled  = inFight || !mon;
 
-  // Eat button: enable when canEat(), regardless of combat cooldowns
+  // Eat button: enable when canEat(), regardless of cooldown
   if (overlayEls.eatBtn){
     overlayEls.eatBtn.disabled = !canEat();
     overlayEls.eatBtn.classList.toggle('cooldown', false);
@@ -184,6 +231,23 @@ function paintHud(){
   // Flee only enabled during a fight
   if (overlayEls.fleeBtn)   overlayEls.fleeBtn.disabled   = !inFight;
 }
+
+/* ---------------- Monster card paint (with Drops row) ---------------- */
+function paintMonsterDrops(mon){
+  const host = document.getElementById('monsterDrops');
+  if (!host) return;
+
+  // ensure the right class for your flex-wrap styling
+  host.classList.add('monster-drops');
+
+  const rows = (mon?.drops || [])
+    .slice()
+    .sort((a,b)=>(b.chance||0)-(a.chance||0));
+
+  const chips = rows.map(chipHtmlForDrop).join('');
+  host.innerHTML = chips || '<span class="muted small">No known drops</span>';
+}
+
 
 function paintMonsterCard(mon){
   if (!mon) return;
@@ -197,6 +261,9 @@ function paintMonsterCard(mon){
   if (Number.isFinite(mon.defense)) statsBits.push(`Def ${mon.defense}`);
   if (Number.isFinite(mon.maxHit))  statsBits.push(`Max ${mon.maxHit}`);
   if (overlayEls.monStats) overlayEls.monStats.textContent = statsBits.join(' · ') || '—';
+
+  // labeled Drops row
+  paintMonsterDrops(mon);
 }
 
 export function renderCombat(){
@@ -209,7 +276,7 @@ export function renderCombat(){
   paintHud();
 }
 
-/* ---------- Auto-fight loop (unchanged) ---------- */
+/* ---------------- Auto-fight loop ---------------- */
 let fightLoop = null;
 function stopFightLoop(){
   if (fightLoop) { clearInterval(fightLoop); fightLoop = null; }
@@ -232,7 +299,6 @@ function applyTurnFx(logs){
   const dmgMon = parseDamage(youHitLine);
   const dmgYou = parseDamage(monHitLine);
 
-  // Enemy takes damage from you
   if (dmgMon != null){
     const crit = hasCrit(youHitLine);
     pulse(overlayEls.monHpBar, 'flash-dmg', 350);
@@ -243,7 +309,6 @@ function applyTurnFx(logs){
     bubbleDamage(overlayEls.monHpBar, 0, 'block', { text:'Block' });
   }
 
-  // You take damage from enemy
   if (dmgYou != null){
     const crit = hasCrit(monHitLine);
     pulse(overlayEls.playerHpBar, 'flash-dmg', 350);
@@ -268,7 +333,6 @@ function runCombatTurn(){
   });
   applyTurnFx(logs);
 
-  // Apply cooldown immediately
   atkCooldownUntil = nowMs() + ATK_COOLDOWN_MS;
 
   renderCombat();
@@ -284,6 +348,9 @@ function runCombatTurn(){
       if (loot.length) overlayEls.log.appendChild(Object.assign(document.createElement('div'),{
         textContent: `Loot: ${loot.join(', ')}`
       }));
+
+      // After a win, repaint the monster card drops so newly discovered items appear
+      paintMonsterDrops(currentMonster());
     } else {
       overlayEls.log.appendChild(Object.assign(document.createElement('div'),{textContent: `You were defeated.`}));
     }
@@ -308,55 +375,43 @@ function startFightLoop(){
   }, ATK_COOLDOWN_MS);
 }
 
-/* ----------------- Overlay Control ----------------- */
+/* ---------------- Overlay Control ---------------- */
 function openCombat(mon){
   if (!overlayEls.overlay) return;
 
-  // Select & paint monster
   state.selectedMonsterId = mon.id;
   saveState(state);
 
   paintMonsterCard(mon);
 
-  // Sync training style UI
   if (overlayEls.training) {
     overlayEls.training.value = state.trainingStyle || 'shared';
   }
 
-  // Clear log and show
   if (overlayEls.log) overlayEls.log.innerHTML = '';
 
   overlayEls.overlay.classList.remove('hidden');
   renderCombat();
 }
-
 function closeCombat(){
   overlayEls.overlay?.classList.add('hidden');
   state.combat = null;
   saveState(state);
   stopFightLoop();
 }
-
-// Close button
 overlayEls.close?.addEventListener('click', closeCombat);
-
-// Backdrop click (don’t close when clicking inside the box)
 overlayEls.overlay?.addEventListener('click', (e)=>{
   if (e.target === overlayEls.overlay) closeCombat();
 });
-
-// ESC to close
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !overlayEls.overlay.classList.contains('hidden')) closeCombat();
 });
-
-// Training style
 overlayEls.training?.addEventListener('change', ()=>{
   state.trainingStyle = overlayEls.training.value || 'shared';
   saveState(state);
 });
 
-/* ----------------- Buttons ----------------- */
+/* ---------------- Buttons ---------------- */
 overlayEls.fightBtn?.addEventListener('click', ()=>{
   const mon = currentMonster();
   if (!mon || state.combat) return;
@@ -367,15 +422,10 @@ overlayEls.fightBtn?.addEventListener('click', ()=>{
   renderEquipment();
   startFightLoop(); // auto-attacks every 0.5s
 });
-
-// Eat button (formerly Attack)
 overlayEls.eatBtn?.addEventListener('click', ()=>{
-  // Eating is allowed both in and out of combat as long as canEat() is true
   if (!canEat()) return;
   doEatOnce();
 });
-
-// Flee
 overlayEls.fleeBtn?.addEventListener('click', ()=>{
   if (!state.combat) return;
   const mon = MONSTERS.find(m=>m.id===state.combat.monsterId);
@@ -383,7 +433,7 @@ overlayEls.fleeBtn?.addEventListener('click', ()=>{
   closeCombat();
 });
 
-/* ----------------- Monster Grid & Zones ----------------- */
+/* ---------------- Monster Grid & Zones ---------------- */
 function renderMonsterGrid(zone) {
   const grid = document.querySelector('#monsterGrid');
   if (!grid) return;
@@ -391,6 +441,20 @@ function renderMonsterGrid(zone) {
 
   const monsters = MONSTERS.filter(m => m.zone === zone);
   monsters.forEach(mon => {
+    const topDrops = (mon.drops||[])
+      .slice()
+      .sort((a,b)=>(b.chance||0)-(a.chance||0))
+      .slice(0,3);
+
+    const dots = topDrops.map(d => {
+      const known = isDiscovered(d);
+      if (!known){
+        return `<span class="dot unknown" title="Undiscovered"></span>`;
+      }
+      const name = d.id ? (ITEMS?.[d.id]?.name || d.id) : `${d.gold}g`;
+      return `<span class="dot ${dotClassForChance(d.chance||0)}" title="${name} · ${fmtPct(d.chance||0)}"></span>`;
+    }).join('');
+
     const card = document.createElement('div');
     card.className = 'monster-choice';
     card.dataset.id = mon.id;
@@ -398,6 +462,7 @@ function renderMonsterGrid(zone) {
       <img src="${mon.img || ''}" alt="${mon.name}">
       <div class="title">${mon.name}</div>
       <div class="muted">Lv ${mon.level}</div>
+      <div class="drops-row" aria-label="Notable drops">${dots}</div>
     `;
     card.addEventListener('click', ()=> openCombat(mon));
     grid.appendChild(card);
@@ -420,4 +485,9 @@ document.addEventListener('DOMContentLoaded', () => {
   setupZones();
   const firstZone = document.querySelector('.zone-btn')?.dataset.zone;
   if (firstZone) renderMonsterGrid(firstZone);
+});
+
+/* Repaint drops if an external system signals new discovery */
+window.addEventListener('drops:discover', ()=>{
+  paintMonsterDrops(currentMonster());
 });

@@ -271,7 +271,7 @@ export function renderEnchanting(){
 on(document, 'click', '#enchantList .craft-item', async (e, row)=>{
   if (!row || row.classList.contains('disabled')) return;
   const rid = row.dataset.id; if (!rid) return;
-  if (state.action && state.action.type !== 'enchant') return;
+  //if (state.action && state.action.type !== 'enchant') return;
   if (!canEnchant(state, rid)) return;
 
   // Disable all rows during the ritual
@@ -330,8 +330,8 @@ on(document, 'click', '#enchantList .craft-item', async (e, row)=>{
     if (el.mana) el.mana.textContent = manaText();
     renderEquipment();
     renderSkills();
+    renderEnchanting();
     saveState(state);
-    renderEnchanting(); // rebuild rows (re-enables)
   });
 
   if (!started){

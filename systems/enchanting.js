@@ -66,7 +66,7 @@ export function canEnchant(state, id){
 }
 
 export function startEnchant(state, id, onDone){
-  if (state.action) return false;
+  //if (state.action) return false;
   const r = getRec(id); if(!r) return false;
   if (!canEnchant(state, id)) return false;
 

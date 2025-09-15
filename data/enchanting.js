@@ -4,7 +4,7 @@ export const ENCHANT_RECIPES = {
       id: 'tome_forest_novice',
       name: 'Enchant Novice Forest Tome',
       level: 1,
-      time: 2000,
+      time: 1300,
       mana: 5,
       inputs: [
         { id: 'book', qty: 1 },
@@ -19,7 +19,7 @@ export const ENCHANT_RECIPES = {
     id: 'tome_sea_novice',
     name: 'Enchant Novice Sea Tome',
     level: 1,
-    time: 1700,
+    time: 1300,
     mana: 5,
     inputs: [
       { id: 'book', qty: 1 },
@@ -34,7 +34,7 @@ export const ENCHANT_RECIPES = {
     id: 'tome_rock_novice',
     name: 'Enchant Novice Rock Tome',
     level: 1,
-    time: 1700,
+    time: 1300,
     mana: 5,
     inputs: [
       { id: 'book', qty: 1 },

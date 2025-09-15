@@ -19,6 +19,26 @@ export const SMELT_RECIPES = {
     time: 2000,
     xp: 25,
     inputs: [{ id: 'ore_iron', qty: 2 }]
+  },
+  bar_steel: {
+    name: 'Steel Bar',
+    level: 30,
+    time: 2200,
+    xp: 40,
+    inputs: [
+      { id: 'ore_iron', qty: 1 },
+      { id: 'ore_coal', qty: 1 }
+    ]
+  },
+  bar_blacksteel: {
+    name: 'Blacksteel Bar',
+    level: 40,
+    time: 2600,
+    xp: 60,
+    inputs: [
+      { id: 'ore_nightiron', qty: 2 },
+      { id: 'ore_coal', qty: 1 }
+    ]
   }
 };
 
@@ -63,8 +83,36 @@ export const FORGE_RECIPES = [
   { id:'axe_iron',      metal:'iron',   name:'Iron Axe',          barId:'bar_iron',   bars:2, time:2600, xp:70, extras:[{ id:'wood_handle', qty:1 }], quality:false, level:20 },
   { id:'pick_iron',     metal:'iron',   name:'Iron Pickaxe',      barId:'bar_iron',   bars:2, time:2800, xp:70, extras:[{ id:'wood_handle', qty:1 }], quality:false, level:20 },
 
+  // --- Steel gear (lvl 30+) 
+  { id:'steel_helm',     metal:'steel',   name:'Steel Helm',         barId:'bar_steel',   bars:2, time:3400, xp:100, level:31 },
+  { id:'steel_plate',    metal:'steel',   name:'Steel Platebody',    barId:'bar_steel',   bars:5, time:4300, xp:250, level:35 },
+  { id:'steel_legs',     metal:'steel',   name:'Steel Platelegs',    barId:'bar_steel',   bars:4, time:3800, xp:200, level:33 },
+  { id:'steel_gloves',   metal:'steel',   name:'Steel Gloves',       barId:'bar_steel',   bars:1, time:2700, xp:50,  level:30 },
+  { id:'steel_boots',    metal:'steel',   name:'Steel Boots',        barId:'bar_steel',   bars:1, time:2700, xp:50,  level:30 },
+  { id:'steel_shield',   metal:'steel',   name:'Steel Shield',       barId:'bar_steel',   bars:3, time:4000, xp:150, level:34 },
+  { id:'steel_dagger',   metal:'steel',   name:'Steel Dagger',       barId:'bar_steel',   bars:1, time:2900, xp:55,  extras:[{ id:'wood_handle', qty:1 }], level:30 }, // 50 *1.1
+  { id:'steel_sword',    metal:'steel',   name:'Steel Sword',        barId:'bar_steel',   bars:3, time:3600, xp:165, extras:[{ id:'wood_handle', qty:1 }], level:33 }, // 150 *1.1
+  { id:'steel_hammer',   metal:'steel',   name:'Steel Hammer',       barId:'bar_steel',   bars:3, time:3600, xp:165, extras:[{ id:'wood_handle', qty:1 }], level:35 }, // 150 *1.1
+  { id:'axe_steel',      metal:'steel',   name:'Steel Axe',          barId:'bar_steel',   bars:2, time:2900, xp:110, extras:[{ id:'wood_handle', qty:1 }], quality:false, level:30 }, // 100 *1.1
+  { id:'pick_steel',     metal:'steel',   name:'Steel Pickaxe',      barId:'bar_steel',   bars:2, time:3100, xp:110, extras:[{ id:'wood_handle', qty:1 }], quality:false, level:30 }, // 100 *1.1
+
+  // --- Blacksteel gear (lvl 40+)
+  { id:'blacksteel_helm',   metal:'blacksteel', name:'Blacksteel Helm',       barId:'bar_blacksteel', bars:2, time:3900, xp:180, level:41 },
+  { id:'blacksteel_plate',  metal:'blacksteel', name:'Blacksteel Platebody',  barId:'bar_blacksteel', bars:5, time:4900, xp:450, level:45 },
+  { id:'blacksteel_legs',   metal:'blacksteel', name:'Blacksteel Platelegs',  barId:'bar_blacksteel', bars:4, time:4400, xp:360, level:43 },
+  { id:'blacksteel_gloves', metal:'blacksteel', name:'Blacksteel Gloves',     barId:'bar_blacksteel', bars:1, time:3100, xp:90,  level:40 },
+  { id:'blacksteel_boots',  metal:'blacksteel', name:'Blacksteel Boots',      barId:'bar_blacksteel', bars:1, time:3100, xp:90,  level:40 },
+  { id:'blacksteel_shield', metal:'blacksteel', name:'Blacksteel Shield',     barId:'bar_blacksteel', bars:3, time:4600, xp:270, level:44 },
+  { id:'blacksteel_dagger', metal:'blacksteel', name:'Blacksteel Dagger',     barId:'bar_blacksteel', bars:1, time:3300, xp:99,  extras:[{ id:'wood_handle', qty:1 }], level:40 }, // 90 *1.1
+  { id:'blacksteel_sword',  metal:'blacksteel', name:'Blacksteel Sword',      barId:'bar_blacksteel', bars:3, time:4100, xp:297, extras:[{ id:'wood_handle', qty:1 }], level:43 }, // 270 *1.1
+  { id:'blacksteel_axe',    metal:'blacksteel', name:'Blacksteel Axe (Wpn)',  barId:'bar_blacksteel', bars:3, time:4100, xp:297, extras:[{ id:'wood_handle', qty:1 }], level:45 }, // 270 *1.1
+  { id:'axe_blacksteel',    metal:'blacksteel', name:'Blacksteel Axe',        barId:'bar_blacksteel', bars:2, time:3300, xp:198, extras:[{ id:'wood_handle', qty:1 }], quality:false, level:40 }, // 180 *1.1
+  { id:'pick_blacksteel',   metal:'blacksteel', name:'Blacksteel Pickaxe',    barId:'bar_blacksteel', bars:2, time:3600, xp:198, extras:[{ id:'wood_handle', qty:1 }], quality:false, level:40 }, // 180 *1.1
+
   // Upgrade materials
   { id:'copper_upgrade_bar', name:'Copper Upgrade Bar', metal:'copper', barId:'bar_copper', bars:3, time:1200, xp:18, kind:'material', quality:false, level:5 },
   { id:'bronze_upgrade_bar', name:'Bronze Upgrade Bar', metal:'bronze', barId:'bar_bronze', bars:3, time:2000, xp:45, kind:'material', quality:false, level:15 },
   { id:'iron_upgrade_bar',   name:'Iron Upgrade Bar',   metal:'iron',   barId:'bar_iron',   bars:3, time:2000, xp:75, kind:'material', quality:false, level:25 },
+  { id:'steel_upgrade_bar',      name:'Steel Upgrade Bar',      metal:'steel',      barId:'bar_steel',      bars:3, time:2300, xp:150,  kind:'material', quality:false, level:30 },
+  { id:'blacksteel_upgrade_bar', name:'Blacksteel Upgrade Bar', metal:'blacksteel', barId:'bar_blacksteel', bars:3, time:2700, xp:270,  kind:'material', quality:false, level:40 },
 ];

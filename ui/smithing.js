@@ -52,7 +52,7 @@ function qStr(q){ return q!=null ? `qty: ${q}%` : ''; }
 function metalOfRecipe(rec){
   if (rec?.metal) return rec.metal;                             // preferred
   const m = String(rec?.id||'').split('_')[0];                  // infer from id
-  return ['copper','bronze','iron'].includes(m) ? m : 'copper';
+  return ['copper','bronze','iron', 'steel', 'blacksteel'].includes(m) ? m : 'copper';
 }
 function barForRecipe(rec){
   return rec?.barId || (rec?.metal ? `bar_${rec.metal}` : 'bar_copper');
@@ -105,7 +105,7 @@ function ensureSmeltDropdown(){
   if (!el.smeltSelect) return;
 
   const bars = Object.keys(SMELT_RECIPES || {});
-  const order = ['bar_copper','bar_bronze','bar_iron'];
+  const order = ['bar_copper','bar_bronze','bar_iron', 'bar_steel', 'bar_blacksteel'];
   bars.sort((a,b)=> (order.indexOf(a)+999) - (order.indexOf(b)+999) || a.localeCompare(b));
 
   const prev = el.smeltSelect.value;
@@ -344,8 +344,16 @@ on(document, 'click', '#forgeList .forge-item', (e, btn)=>{
 
 // tint from recipe metal
 function tintClassForRecipe(rec){
-  const m = metalOfRecipe(rec);
-  return m ? ` tint-${m}` : '';
+  // Prefer explicit metal, otherwise infer from id prefix (e.g., "iron_helm")
+  const metal = (rec?.metal) || String(rec?.id||'').split('_')[0];
+
+  // We tint these families using shared bronze/iron art, and now steel too:
+  const TINTABLE = new Set(['copper','bronze','iron','steel']);
+
+  // Blacksteel (and other late-tier sets with bespoke art) should NOT be tinted
+  if (!TINTABLE.has(metal)) return '';
+
+  return ` tint-${metal}`;
 }
 
 // choose an icon for the recipe's output

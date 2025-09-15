@@ -60,13 +60,15 @@ export const ITEMS = {
     pick_copper: { id:'pick_copper', name:'Copper Pick', type:'equipment', slot:'pick', speed:1.25, img:'assets/equipment/bronze-pick.png' },
     axe_bronze:  { id:'axe_bronze',  name:'Bronze Axe', type:'equipment', slot:'axe',  speed:1.35, img:'assets/equipment/bronze-axe.png' },
     pick_bronze: { id:'pick_bronze', name:'Bronze Pick',type:'equipment', slot:'pick', speed:1.35, img:'assets/equipment/bronze-pick.png' },
+    axe_iron:    { id:'axe_iron',    name:'Iron Axe',   type:'equipment', slot:'axe',  speed:1.50, img:'assets/equipment/bronze-axe.png' },
+    pick_iron:   { id:'pick_iron',   name:'Iron Pick',  type:'equipment', slot:'pick', speed:1.50, img:'assets/equipment/bronze-pick.png' },
+    axe_steel:    { id:'axe_steel',    name:'Steel Axe',   type:'equipment', slot:'axe',  speed:1.75, img:'assets/equipment/bronze-axe.png' },
+    pick_steel:   { id:'pick_steel',   name:'Steel Pick',  type:'equipment', slot:'pick', speed:1.75, img:'assets/equipment/bronze-pick.png' },
+    axe_blacksteel:    { id:'axe_blacksteel',    name:'Blacksteel Axe',   type:'equipment', slot:'axe',  speed:2.0, img:'assets/equipment/black_axe.png' },
+    pick_blacksteel:   { id:'pick_blacksteel',   name:'Blacksteel Pick',  type:'equipment', slot:'pick', speed:2.0, img:'assets/equipment/black_pick.png' },
     fishing_pole: { id:'fishing_pole', name:'Fishing Pole',type:'equipment', slot:'fishing', speed:1.25, img:'assets/equipment/fishing-pole.png' },
     sturdy_pole: { id:'sturdy_pole', name:'Sturdy Pole',type:'equipment', slot:'fishing', speed:1.35, img:'assets/equipment/sturdy-pole.png' },
     anglers_pride: { id:'anglers_pride', name:'Anglers Pride',type:'equipment', slot:'fishing', speed:1.50, img:'assets/equipment/anglers-pride.png' },
-
-    // Iron
-    axe_iron:    { id:'axe_iron',    name:'Iron Axe',   type:'equipment', slot:'axe',  speed:1.50, img:'assets/equipment/bronze-axe.png' },
-    pick_iron:   { id:'pick_iron',   name:'Iron Pick',  type:'equipment', slot:'pick', speed:1.50, img:'assets/equipment/bronze-pick.png' },
 
     // Fishing resources
     raw_shrimps: { id:'raw_shrimps', name:'Raw Shrimp',  type:'resource', sell:1, xp: 10, img:'assets/food/raw_shrimp.png' },
@@ -92,14 +94,21 @@ export const ITEMS = {
     ore_copper: { id:'ore_copper', name:'Copper Ore', type:'resource', sell:1, img: 'assets/materials/ore.png' },
     ore_tin:    { id:'ore_tin',    name:'Tin Ore',    type:'resource', sell:2, img: 'assets/materials/ore.png' },
     ore_iron:   { id:'ore_iron',   name:'Iron Ore',   type:'resource', sell:4, img: 'assets/materials/ore.png' },
+    ore_coal:   { id:'ore_coal',   name:'Coal',   type:'resource', sell:8, img: 'assets/materials/coal.png' },
+    ore_nightiron:  { id:'ore_nightiron',  name:'Nightiron Ore', sell:16, type:'resource', img: 'assets/materials/nightiron.png' },
+
 
     // Smithing resource
     bar_copper: { id:'bar_copper', name:'Copper Bar',  type:'resource', sell:3, img: 'assets/materials/bar.png' },
     bar_bronze: { id:'bar_bronze', name:'Bronze Bar', type:'resource', sell:5, img: 'assets/materials/bar.png' },
     bar_iron:   { id:'bar_iron',   name:'Iron Bar',   type:'resource', sell:8, img: 'assets/materials/bar.png' },
-    copper_upgrade_bar: { id:'copper_upgrade_bar', name:'Copper Upgrade Bar', type:'material', sell:8, icon:'➕' },
-    bronze_upgrade_bar: { id:'bronze_upgrade_bar', name:'Bronze Upgrade Bar', type:'material', sell:20, icon:'➕' },
-    iron_upgrade_bar: { id:'iron_upgrade_bar', name:'Iron Upgrade Bar', type:'material', sell:45, icon:'➕' },
+    bar_steel:   { id:'bar_steel',   name:'Steel Bar',   type:'resource', sell:22, img: 'assets/materials/bar.png' },
+    bar_blacksteel:   { id:'bar_blacksteel',   name:'Blacksteel Bar',   type:'resource', sell:44, img: 'assets/materials/bar_nightiron.png' },
+    copper_upgrade_bar: { id:'copper_upgrade_bar', name:'Copper Upgrade Bar', type:'material', sell:8, icon:'➕', img: 'assets/equipment/armor-upgrade.png' },
+    bronze_upgrade_bar: { id:'bronze_upgrade_bar', name:'Bronze Upgrade Bar', type:'material', sell:20, icon:'➕', img: 'assets/equipment/armor-upgrade.png', tint:'bronze' },
+    iron_upgrade_bar: { id:'iron_upgrade_bar', name:'Iron Upgrade Bar', type:'material', sell:32, icon:'➕', img: 'assets/equipment/armor-upgrade.png',tint:'iron' },
+    steel_upgrade_bar: { id:'steel_upgrade_bar', name:'Steel Upgrade Bar', type:'material', sell:75, icon:'➕', img: 'assets/equipment/armor-upgrade.png', tint:'steel' },
+    blacksteel_upgrade_bar: { id:'blacksteel_upgrade_bar', name:'Blacksteel Upgrade Bar', type:'material', sell:150, icon:'➕', img: 'assets/equipment/upgrade_nightiron.png', tint:'steel' },
 
     // --- Copper ---
     copper_helm:   { id:'copper_helm',   name:'Copper Helm',   type:'equipment', slot:'head',   def:3, sell:6, img:'assets/equipment/bronze-helm.png' },
@@ -131,6 +140,28 @@ export const ITEMS = {
     iron_dagger: { id:'iron_dagger', name:'Iron Dagger', type:'equipment', slot:'weapon', atk:13, str:6,  sell:24, img:'assets/equipment/bronze-dagger.png', tint:'iron' },
     iron_sword:  { id:'iron_sword',  name:'Iron Sword',  type:'equipment', slot:'weapon', atk:16, str:12,  sell:40, img:'assets/equipment/bronze-sword.png',  tint:'iron' },
     iron_hammer: { id:'iron_hammer', name:'Iron Hammer', type:'equipment', slot:'weapon', atk:11,  str:25, sell:40, img:'assets/equipment/bronze-hammer.png',tint:'iron' },
+    // --- Steel ---
+    steel_helm:   { id:'steel_helm',   name:'Steel Helm',   type:'equipment', slot:'head',   def:12, sell:34, img:'assets/equipment/bronze-helm.png',   tint:'steel' },
+    steel_plate:  { id:'steel_plate',  name:'Steel Plate',  type:'equipment', slot:'body',   def:27, sell:64, img:'assets/equipment/bronze-plate.png',  tint:'steel' },
+    steel_legs:   { id:'steel_legs',   name:'Steel Greaves',type:'equipment', slot:'legs',   def:18, sell:48, img:'assets/equipment/bronze-legs.png',   tint:'steel' },
+    steel_gloves: { id:'steel_gloves', name:'Steel Gloves', type:'equipment', slot:'gloves', def:8,  sell:18, img:'assets/equipment/bronze-gloves.png', tint:'steel' },
+    steel_boots:  { id:'steel_boots',  name:'Steel Boots',  type:'equipment', slot:'boots',  def:8,  sell:18, img:'assets/equipment/bronze-boots.png',  tint:'steel' },
+    steel_shield: { id:'steel_shield', name:'Steel Shield', type:'equipment', slot:'shield', def:22, sell:60, img:'assets/equipment/bronze-shield.png', tint:'steel' },
+    steel_dagger: { id:'steel_dagger', name:'Steel Dagger', type:'equipment', slot:'weapon', atk:18, str:8,   sell:38, img:'assets/equipment/bronze-dagger.png', tint:'steel' },
+    steel_sword:  { id:'steel_sword',  name:'Steel Sword',  type:'equipment', slot:'weapon', atk:22, str:16,  sell:62, img:'assets/equipment/bronze-sword.png',  tint:'steel' },
+    steel_hammer: { id:'steel_hammer', name:'Steel Hammer', type:'equipment', slot:'weapon', atk:15, str:35,  sell:62, img:'assets/equipment/bronze-hammer.png', tint:'steel' },
+    // --- Blacksteel (combat set; hammer → axe) ---
+    blacksteel_helm:   { id:'blacksteel_helm',   name:'Blacksteel Helm',    type:'equipment', slot:'head',   def:18, sell:120, img:'assets/equipment/helm.png',    tint:'blacksteel' },
+    blacksteel_plate:  { id:'blacksteel_plate',  name:'Blacksteel Plate',   type:'equipment', slot:'body',   def:38, sell:260, img:'assets/equipment/plate.png',   tint:'blacksteel' },
+    blacksteel_legs:   { id:'blacksteel_legs',   name:'Blacksteel Greaves', type:'equipment', slot:'legs',   def:26, sell:190, img:'assets/equipment/legs.png',    tint:'blacksteel' },
+    blacksteel_gloves: { id:'blacksteel_gloves', name:'Blacksteel Gloves',  type:'equipment', slot:'gloves', def:12, sell: 90, img:'assets/equipment/gloves.png',  tint:'blacksteel' },
+    blacksteel_boots:  { id:'blacksteel_boots',  name:'Blacksteel Boots',   type:'equipment', slot:'boots',  def:12, sell: 90, img:'assets/equipment/boots.png',   tint:'blacksteel' },
+    blacksteel_shield: { id:'blacksteel_shield', name:'Blacksteel Shield',  type:'equipment', slot:'shield', def:30, sell:220, img:'assets/equipment/shield.png',  tint:'blacksteel' },
+    blacksteel_dagger: { id:'blacksteel_dagger', name:'Blacksteel Dagger',  type:'equipment', slot:'weapon', atk:24, str:12, sell:160, img:'assets/equipment/dagger.png', tint:'blacksteel' },
+    blacksteel_sword:  { id:'blacksteel_sword',  name:'Blacksteel Sword',   type:'equipment', slot:'weapon', atk:30, str:22, sell:280, img:'assets/equipment/sword.png',  tint:'blacksteel' },
+    blacksteel_axe:    { id:'blacksteel_axe',    name:'Blacksteel Axe',     type:'equipment', slot:'weapon', atk:20, str:40, sell:280, img:'assets/equipment/axe.png', tint:'blacksteel' },
+
+
 
     // Enchanting
     tome_forest_novice: {

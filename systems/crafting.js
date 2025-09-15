@@ -111,7 +111,7 @@ export function finishCraft(state, recipeOrId){
 
 // ---- legacy queue-style API (kept for compatibility) ----
 export function startCraftQueued(state, id, count=1){
-  if(state.action) return false;
+  //if(state.action) return false;
   const r = getRec(id); if(!r) return false;
   if(!canCraft(state, id, 1)) return false;
 

@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RuneCut — Incremental</title>
   <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Marcellus&display=swap" rel="stylesheet">
 </head>
 <body>
   <header>
@@ -250,6 +251,8 @@
                 <option value="copper">Copper</option>
                 <option value="bronze">Bronze</option>
                 <option value="iron">Iron</option>
+                <option value="steel">Steel</option>
+                <option value="blacksteel">Blacksteel</option>
               </select>
 
               <select id="upgradeTarget" style="min-width:220px;">
@@ -273,6 +276,8 @@
                 <option value="copper">Copper</option>
                 <option value="bronze">Bronze</option>
                 <option value="iron">Iron</option>
+                <option value="steel">Steel</option>
+                <option value="blacksteel">Blacksteel</option>
               </select>
             </div>
             <div id="forgeList" class="shop"></div>
@@ -438,6 +443,10 @@
             <span class="muted">Lv <b id="monsterCardLevel">—</b></span>
           </div>
           <div class="monster-stats small muted" id="monsterCardStats">HP — · Atk — · Def — · Max —</div>
+        </div>
+        <div class="card-row">
+          <div class="label">Drops</div>
+          <div id="monsterDrops" class="monster-drops"></div>
         </div>
       </div>
 

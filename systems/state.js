@@ -24,6 +24,8 @@ export function defaultState(){
     logs: [],
     logFilter: 'all',
 
+    discoveredDrops: {},
+
     // Selections
     selectedTreeId: 'oak',
     selectedSpotId: 'pond_shallows',
@@ -72,6 +74,7 @@ export function hydrateState(){
 
   // Arrays / misc
   state.logs = Array.isArray(loaded.logs) ? loaded.logs : [];
+  state.discoveredDrops = { ...(loaded.discoveredDrops || {}) };
 
   // Don’t resume half-finished timers after reload
   state.action = null;

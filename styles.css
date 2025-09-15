@@ -16,9 +16,23 @@
   --progress-h-xs: 8px;
   --progress-h-hp: 30px;
   --cook-bar-h: 20px;
+  --font-title: "Marcellus", serif;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Red Hat Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 * { box-sizing: border-box; }
-html, body { height: 100%; }
+html, body { height: 100%; font-family: var(--font-title), serif; }
+h1, h2, h3, .monster-title, .panel-title {
+  font-family: var(--font-title);
+  letter-spacing: .02em;
+}
+.badge, .qty-badge, .stat, .damage, .enchant-badge {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums; /* aligned numbers for HP/DMG */
+}
+*, *::before, *::after {
+  font-family: inherit !important;
+}
 body {
   margin: 0; background: radial-gradient(1200px 800px at 20% 10%, #141834, #0d1020) no-repeat, var(--bg);
   color: var(--text); font: 15px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -59,10 +73,10 @@ button:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 .progress .label { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: var(--text-dim); }
 .progress.xs { height: var(--progress-h-xs); }
 
-/* Monster card (combat) */
 .monster-card{
+  --mon-img: 128px;
   display:grid;
-  grid-template-columns: 96px 1fr;
+  grid-template-columns: var(--mon-img) 1fr;
   gap:12px;
   align-items:center;
   border:1px solid #2a3162;
@@ -72,10 +86,12 @@ button:disabled { opacity: .6; cursor: not-allowed; transform: none; }
   margin-bottom:10px;
 }
 .monster-img{
-  width:96px; height:96px; object-fit:contain; border-radius:10px;
+  width:var(--mon-img); height:var(--mon-img);
+  object-fit:contain; border-radius:10px;
   background:#0b1028; border:1px solid #242a4f;
 }
-.monster-title{ font-weight:700; display:flex; align-items:center; gap:8px; }
+
+.monster-title{ font-weight:600; display:flex; align-items:center; gap:8px; text-transform: none; }
 .monster-stats{ margin-top:4px; }
 
 
@@ -594,6 +610,16 @@ img.icon-img.tint-iron {
     hue-rotate(190deg);
 }
 
+/* Neutral bluish-grey steel tint */
+.icon-img.tint-steel {
+  filter:
+    brightness(0.95)
+    contrast(1.05)
+    saturate(0.85)
+    sepia(0.05)
+    hue-rotate(190deg);
+}
+
 /* In-button progress bar for forge actions */
 .forge-card .forge-progress,
 #forgeList > button .forge-progress,
@@ -965,3 +991,63 @@ img.icon-img.tint-iron {
 .enchanted-pulse { animation: swiftPulse .35s ease; }
 @keyframes swiftPulse { from{transform:scale(1.04)} to{transform:scale(1)} }
 
+/* --- Monster Card: show drops only when hovering the monster image --- */
+#monsterCard .card-row {
+  /* hidden by default */
+  display: none;
+  align-items: flex-start;
+  gap: 10px;
+}
+#monsterImg:hover ~ .card-row {
+  /* become visible when you hover the monster image only */
+  display: flex;
+}
+
+/* Drops layout (row + wrap) */
+#monsterDrops {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+#monsterDrops > .drop-chip {
+  display: inline-flex;
+  flex: 0 0 auto;        /* never stretch to full width */
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #ddd;
+  user-select: none;
+}
+#monsterDrops > .drop-chip img {
+  width: 16px; height: 16px; border-radius: 3px; display: block;
+}
+#monsterDrops > .drop-chip .name {
+  white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Rarity tints */
+#monsterDrops > .drop-chip.common    { border-color: rgba(180,180,180,.3); color:#e0e0e0; }
+#monsterDrops > .drop-chip.uncommon  { border-color: rgba(88,200,120,.35); box-shadow: inset 0 0 0 1px rgba(88,200,120,.15); color:#bff0ca; }
+#monsterDrops > .drop-chip.rare      { border-color: rgba(86,156,214,.35); box-shadow: inset 0 0 0 1px rgba(86,156,214,.15); color:#c9e6ff; }
+#monsterDrops > .drop-chip.epic      { border-color: rgba(171,103,230,.4);  box-shadow: inset 0 0 0 1px rgba(171,103,230,.18); color:#e6d4ff; }
+#monsterDrops > .drop-chip.legendary { border-color: rgba(255,198,65,.5);   box-shadow: inset 0 0 0 1px rgba(255,198,65,.22);  color:#ffe7a6; }
+#monsterDrops > .drop-chip.unknown   { border-color: rgba(140,140,140,.25); color:#bbb; background: rgba(255,255,255,0.04); }
+
+/* --- Monster Grid: show the tiny drop dots only on hover of the card --- */
+.monster-choice .drops-row { display: none; gap: 4px; margin-top: 6px; }
+.monster-choice:hover .drops-row { display: flex; }
+.monster-choice .drops-row .dot {
+  width:8px; height:8px; border-radius:50%; background:#888; opacity:.9;
+}
+.monster-choice .drops-row .dot.uncommon  { background:#58c878; }
+.monster-choice .drops-row .dot.rare      { background:#569cd6; }
+.monster-choice .drops-row .dot.epic      { background:#ab67e6; }
+.monster-choice .drops-row .dot.legendary { background:#ffc641; }
+.monster-choice .drops-row .dot.unknown   { background:#666; }

@@ -36,6 +36,19 @@ const BALANCE = {
 
 function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
 
+function dropKey(d){
+  if (!d) return null;
+  if (d.id)   return `item:${d.id}`;
+  if (d.gold) return `gold:${d.gold}`;
+  return null;
+}
+function recordDiscovery(state, d){
+  const k = dropKey(d);
+  if (!k) return;
+  state.discoveredDrops = state.discoveredDrops || {};
+  state.discoveredDrops[k] = true;
+}
+
 /* ------------------- Equipment helpers ------------------- */
 // Quality-aware equipment stat sum (supports ids like "copper_plate@87")
 function sumEquip(state, key){
@@ -196,6 +209,14 @@ function awardWin(state, mon){
     if (Math.random() < (d.chance ?? 0)){
       if (d.id){ addItem(state, d.id, 1); lootNames.push(ITEMS[d.id]?.name || d.id); }
       if (d.gold){ addGold(state, d.gold); lootNames.push(`${d.gold}g`); }
+    }
+  }
+
+  for (const d of mon.drops){
+    if (Math.random() < d.chance){
+      if (d.id){ addItem(state, d.id, 1); lootNames.push(ITEMS[d.id].name); }
+      if (d.gold){ addGold(state, d.gold); lootNames.push(`${d.gold}g`); }
+      recordDiscovery(state, d);            // <---- NEW
     }
   }
 
