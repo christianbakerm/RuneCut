@@ -96,6 +96,13 @@
             <div class="tile-level">Lvl <b id="defLevelMini">1</b></div>
             <div class="progress xs" title=""><div class="bar" id="defBarMini"></div></div>
           </div>
+
+          <!-- NEW: Royal Service mini tile -->
+          <div class="skill-tile" id="tile-royal">
+            <div class="tile-header">👑 <span>Royal Service</span></div>
+            <div class="tile-level">Lvl <b id="royalLevelMini">1</b></div>
+            <div class="progress xs"><div class="bar" id="royalBarMini"></div></div>
+          </div>
         </div>
 
         <div class="divider"></div>
@@ -114,6 +121,8 @@
           <button class="tab" data-tab="smithing">⚒️ Smithing</button>
           <button class="tab" data-tab="enchanting">Enchanting</button>
           <button class="tab" data-tab="combat">⚔️ Combat</button>
+          <!-- NEW: Royal Service tab -->
+          <button class="tab" data-tab="royal">👑 Royal Service</button>
         </div>
 
         <!-- Forests panel -->
@@ -321,6 +330,21 @@
           </div>
           <p class="small muted">Tip: Click a monster to select and Fight.</p>
         </div>
+
+        <!-- NEW: Royal Service panel -->
+        <div class="tabpanel hidden" id="tab-royal">
+          <h2>👑 Royal Service</h2>
+          <div id="royalStatus" class="small" style="margin:6px 0 10px;">Level — · XP —</div>
+
+          <div class="row" style="gap:8px; margin-bottom:10px;">
+            <button id="royalRequestBtn" class="btn-primary">Request Contract</button>
+            <button id="royalAbandonBtn" class="btn-danger" disabled>Abandon Contract</button>
+          </div>
+
+          <div id="royalContract" class="card" style="padding:10px;">
+            <div class="muted">No active contract. Click “Request Contract”.</div>
+          </div>
+        </div>
       </section>
 
 
@@ -404,7 +428,6 @@
         <div class="divider"></div>
         <h2>🧙 Character</h2>
         <div class="row" style="gap:10px; margin-bottom:8px;">
-         <!--<div class="stat"><span>HP</span> <b id="charHpText">0/0</b></div>-->
           <div class="stat"><span>Atk</span> <b id="charAtk">0</b></div>
           <div class="stat"><span>Str</span> <b id="charStr">0</b></div>
           <div class="stat"><span>Def</span> <b id="charDef">0</b></div>
@@ -416,8 +439,6 @@
         </div>        
         <div class="row small" style="margin-top:8px;">
           <span class="pill">Max Hit: <b id="charMaxHit">1</b></span>
-          <!--<span class="pill">Accuracy vs Selected: <b id="charAcc">—</b></span>-->
-          <!--<span class="pill">Defense Bonus: <b id="charDefBonus">+0</b></span>-->
         </div>
       </section>
     </div>

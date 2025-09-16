@@ -14,6 +14,7 @@ const SK = [
   { key:'atk',     xp:'atkXp',     id:'#tile-atk',     label:'Attack' },
   { key:'str',     xp:'strXp',     id:'#tile-str',     label:'Strength' },
   { key:'def',     xp:'defXp',     id:'#tile-def',     label:'Defense' },
+  { key:'royal', xp:'royalXp', id:'#tile-royal', label:'Royal Service' },
 ];
 
 // Helpers around your XP table (assumed cumulative thresholds by level)

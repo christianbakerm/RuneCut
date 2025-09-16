@@ -53,7 +53,7 @@ export const ITEMS = {
     // 
     wire_coil: { id:'wire_coil',  name:'Wire Coil',  type:'resource', sell:2,  img:'assets/materials/wire-coil.png' },
     silk_coil: { id:'silk_coil',  name:'Silk Coil',  type:'resource', sell:2,  img:'assets/materials/silk-coil.png' },
-    nylon_coil: { id:'nylon_coil',  name:'Nylom Coil',  type:'resource', sell:2,  img:'assets/materials/nylon-coil.png' },
+    nylon_coil: { id:'nylon_coil',  name:'Nylon Coil',  type:'resource', sell:2,  img:'assets/materials/nylon-coil.png' },
   
     // Tools
     axe_copper: { id:'axe_copper', name:'Copper Axe', type:'equipment', slot:'axe', speed:1.25, img:'assets/equipment/bronze-axe.png' },

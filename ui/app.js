@@ -16,6 +16,8 @@ import { renderPanelLogs, wireLogFilters, pushLog } from './logs.js';
 import { setTab, wireRoutes } from './router.js';
 import { updateBar, resetBar } from './actionbars.js';
 import { qs } from '../utils/dom.js';
+import './royal_service.js';
+import { renderRoyal } from './royal_service.js';
 
 // ---- one-time hydrate + bootstrap ------------------------------------------
 hydrateState();
@@ -43,7 +45,7 @@ const el = {
   craftBar:    qs('#craftBar'),
   craftLabel:  qs('#craftLabel'),
 
-  // cooking (optional progress HUD; your current cooking uses a hover mini-game)
+  // cooking
   cookBar:     qs('#cookBar'),
   cookHint:    qs('#cookHint'),
 };
@@ -55,7 +57,6 @@ function wireSaveReset(){
   saveBtn?.addEventListener('click', ()=>{
     try{
       saveState(state);
-      // quick visual feedback
       const prev = saveBtn.textContent;
       saveBtn.disabled = true;
       saveBtn.textContent = 'Saved ✓';
@@ -68,21 +69,15 @@ function wireSaveReset(){
   resetBtn?.addEventListener('click', ()=>{
     if(!confirm('Reset your progress? This cannot be undone.')) return;
 
-    // clear persisted save
     try{ localStorage.removeItem('runecut-save'); }catch{}
 
-    // reset state IN PLACE (keep reference stable)
     const fresh = defaultState();
     for (const k of Object.keys(state)) delete state[k];
     Object.assign(state, fresh);
 
-    // recompute derived values
     state.hpCurrent = hpMaxFor(state);
-
-    // persist fresh state
     saveState(state);
 
-    // re-render everything & go to first tab
     renderInventory();
     renderSmithing();
     renderCooking();
@@ -95,11 +90,12 @@ function wireSaveReset(){
     renderEquipment();
     renderEnchanting();
     renderPanelLogs();
+    renderRoyal();               // ensure Royal panel shows fresh state
     setTab('forests');
   });
 }
 
-// ---- initial renders (same panels main.js paints) ---------------------------
+// ---- initial renders --------------------------------------------------------
 function initialPaint(){
   renderInventory();
   renderSmithing();
@@ -113,9 +109,10 @@ function initialPaint(){
   renderSkills();
   renderEquipment();
   renderPanelLogs();
+  renderRoyal();                 // paint Royal Service once at boot
 }
 
-// ---- render after gaining an item --------------------------------------------
+// ---- render after gaining an item ------------------------------------------
 export function renderAllSkillingPanels(){
   renderWoodcutting?.();
   renderCrafting?.();
@@ -127,9 +124,10 @@ export function renderAllSkillingPanels(){
   renderInventory?.();
   renderEquipment?.();
   renderSkills?.();
+  renderRoyal?.();               // update Royal (deliver buttons/progress)
 }
 
-// Listen once: whenever addItem or removeItem fires the event, refresh all skilling panels
+// Refresh on inventory changes
 window.addEventListener('inventory:change', () => {
   renderAllSkillingPanels();
 });
@@ -177,7 +175,7 @@ function tick(){
     resetBar(el.cookBar,   null);
   }
 
-  // Passive HP regen when not in combat (same feel as main.js)
+  // Passive HP regen when not in combat
   if (!state.combat){
     const maxHp = hpMaxFor(state);
     if (state.hpCurrent < maxHp){
@@ -186,7 +184,6 @@ function tick(){
       const whole = Math.floor(regenCarry * rate);
       if (whole > 0){
         state.hpCurrent = Math.min(maxHp, state.hpCurrent + whole);
-        regenCarry -= whole / rate;
         renderEquipment();
         renderCombat();
       }
@@ -196,36 +193,49 @@ function tick(){
   rafId = requestAnimationFrame(tick);
 }
 
-//log tome xp
+// Tome logs
 window.addEventListener('tome:tick', (e)=>{
   const { dropId, skill, xp } = e.detail || {};
-  // Example: send to a skill-specific channel ('wc', 'fishing', etc) or 'skilling'
   pushLog(`Tome gathered +1 ${dropId.replace(/_/g,' ')}${xp?` · +${xp} ${skill} xp`:''}`, skill || 'skilling');
   renderPanelLogs();
 });
 
-// repaint helpers (useful for updating after tome events)
 function refreshInvAndSkills(){
   renderInventory();
   renderSkills();
 }
 
-// Repaint on tome activity
 window.addEventListener('tome:tick', refreshInvAndSkills);
-
 window.addEventListener('tome:stack', () => {
-  renderEquipment();      // updates equipped tome qty
-  refreshInvAndSkills();  // reflect inventory/XP changes
+  renderEquipment();
+  refreshInvAndSkills();
 });
-
 window.addEventListener('tome:end', () => {
-  renderEquipment();      // removes tome when stack hits 0
+  renderEquipment();
   renderInventory();
 });
 
 // ---- app start --------------------------------------------------------------
 function startApp(){
   wireRoutes();
+
+  // Make sure Royal tab triggers a render when you click it
+  document.querySelector('.tabs')?.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-tab]');
+    if (!btn) return;
+    if (btn.getAttribute('data-tab') === 'royal') {
+      renderRoyal();
+    }
+  });
+
+  // Live refresh Royal Service progress on kills (combat dispatches kills:change)
+  window.addEventListener('kills:change', () => {
+    // If a contract just finished because of this kill, complete & re-render
+    import('../systems/royal_service.js')
+      .then(m => { m.completeIfAllDone?.(); renderRoyal(); })
+      .catch(() => renderRoyal());
+  });
+
   wireLogFilters();
   wireSaveReset();
   initialPaint();

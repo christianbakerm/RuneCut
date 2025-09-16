@@ -1,8 +1,9 @@
-// systems/combat.js — quality-aware gear, stable HP calc, UI-compatible XP payload
+// /systems/combat.js — quality-aware gear, stable HP calc, UI-compatible XP payload
 import { MONSTERS } from '../data/monsters.js';
 import { addItem, addGold } from './inventory.js';
 import { XP_TABLE, levelFromXp } from './xp.js';
 import { ITEMS } from '../data/items.js';
+import { saveState, state } from './state.js';
 
 /* ------------------- Tuning knobs ------------------- */
 const BALANCE = {
@@ -132,7 +133,7 @@ export function turnFight(state){
   }
 
   if (state.combat.monHp <= 0){
-    const payload = awardWin(state, mon);
+    const payload = awardWin(state, mon);           // <-- includes onMonsterKilled()
     log.push(`You defeated ${mon.name}!`);
     return { done:true, win:true, log, xp: payload.xp, loot: payload.loot };
   }
@@ -184,12 +185,28 @@ function monXpCanon(mon){
   };
 }
 
+// Ensure the kills map exists and notify listeners (Royal Service)
+function onMonsterKilled(mon){
+  state.monsterKills = state.monsterKills || {};
+  state.monsterKills[mon.id] = (state.monsterKills[mon.id] || 0) + 1;
+  try {
+    window.dispatchEvent(new CustomEvent('kills:change', {
+      detail: { monsterId: mon.id, total: state.monsterKills[mon.id] }
+    }));
+  } catch {}
+  saveState();
+}
+
 function awardWin(state, mon){
+  // 1) Mark kill FIRST so any listeners (Royal Service) update immediately
+  onMonsterKilled(mon);
+
+  // 2) Grant combat XP based on training style
   const style = state.trainingStyle || 'shared';
   const base = monXpCanon(mon);
 
   let gained = { atk:0, str:0, def:0 };
-  if (style === 'attack')      gained.atk = base.atk;
+  if (style === 'attack')        gained.atk = base.atk;
   else if (style === 'strength') gained.str = base.str;
   else if (style === 'defense')  gained.def = base.def;
   else {
@@ -203,27 +220,26 @@ function awardWin(state, mon){
   state.strXp = (Number(state.strXp)||0) + gained.str;
   state.defXp = (Number(state.defXp)||0) + gained.def;
 
-  // Loot roll
+  // 3) Loot roll (single pass, with discovery tracking)
   const lootNames = [];
-  for (const d of (mon.drops||[])){
+  for (const d of (mon.drops || [])){
     if (Math.random() < (d.chance ?? 0)){
-      if (d.id){ addItem(state, d.id, 1); lootNames.push(ITEMS[d.id]?.name || d.id); }
-      if (d.gold){ addGold(state, d.gold); lootNames.push(`${d.gold}g`); }
+      if (d.id){
+        addItem(state, d.id, 1);
+        lootNames.push(ITEMS[d.id]?.name || d.id);
+      }
+      if (d.gold){
+        addGold(state, d.gold);
+        lootNames.push(`${d.gold}g`);
+      }
+      recordDiscovery(state, d);
     }
   }
 
-  for (const d of mon.drops){
-    if (Math.random() < d.chance){
-      if (d.id){ addItem(state, d.id, 1); lootNames.push(ITEMS[d.id].name); }
-      if (d.gold){ addGold(state, d.gold); lootNames.push(`${d.gold}g`); }
-      recordDiscovery(state, d);            // <---- NEW
-    }
-  }
-
-  // End combat
+  // 4) Exit combat
   state.combat = null;
 
-  // Return payload in the *UI shape* { atk, str, def }
+  // 5) Return payload in the *UI shape* { atk, str, def }
   const xpPayload = { atk: gained.atk, str: gained.str, def: gained.def };
   return { xp: xpPayload, loot: lootNames };
 }

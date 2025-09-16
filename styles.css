@@ -137,21 +137,34 @@ footer { margin-top: 10px; color: var(--text-dim); font-size: 12px; text-align: 
 /* Tabs */
 .tabs{
   display: grid;
-  grid-template-columns: repeat(4, max-content);
-  gap: 10px 10px;
-  justify-content: center;
+  /* 4 equal columns instead of content-sized */
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 10px;
   padding-bottom: 20px;
+
+  /* optional: center the whole grid and cap width */
+  max-width: 960px;
+  margin-inline: auto;
 }
+
 .tab{
+  width: 100%;                 /* fill the grid cell */
+  justify-content: center;     /* center the label inside */
+  white-space: nowrap;         /* keep labels on one line */
   border-radius: 9999px;
-  padding: 20px 10px;       
+  padding: 12px 14px;          /* slightly more balanced padding */
   display: inline-flex;
   align-items: center;
-  gap: 8px;                  
+  gap: 8px;
   border: 1px solid #2a3162;
   background: #0e132c;
-}.tab.active { background: linear-gradient(180deg, #2330a5, #1b2688); border-color:#2e3ac9; }
+}
+.tab.active {
+  background: linear-gradient(180deg, #2330a5, #1b2688);
+  border-color:#2e3ac9;
+}
 .tabpanel.hidden { display:none !important; }
+
 
 /* Sub-elements */
 .divider { height: 12px; }
