@@ -198,8 +198,8 @@ function doEatOnce(){
 function paintHud(){
   // Player
   const maxHp = hpMaxFor(state);
-  if (state.hpCurrent == null) state.hpCurrent = maxHp;
-  const curHp = Math.max(0, Math.min(maxHp, state.hpCurrent));
+  const curHpRaw = state.hpCurrent;
+  const curHp = Math.max(0, Math.min(maxHp, curHpRaw == null ? maxHp : curHpRaw));
   setBar(overlayEls.playerHpBar, overlayEls.playerHpVal, curHp, maxHp);
 
   ensureMana(state);
@@ -233,6 +233,10 @@ function paintHud(){
 }
 
 /* ---------------- Monster card paint (with Drops row) ---------------- */
+function killsOf(monId){
+  return (state.monsterKills && state.monsterKills[monId]) || 0;
+}
+
 function paintMonsterDrops(mon){
   const host = document.getElementById('monsterDrops');
   if (!host) return;
@@ -434,7 +438,7 @@ overlayEls.fleeBtn?.addEventListener('click', ()=>{
 });
 
 /* ---------------- Monster Grid & Zones ---------------- */
-function renderMonsterGrid(zone) {
+export function renderMonsterGrid(zone) {
   const grid = document.querySelector('#monsterGrid');
   if (!grid) return;
   grid.innerHTML = '';
@@ -462,6 +466,7 @@ function renderMonsterGrid(zone) {
       <img src="${mon.img || ''}" alt="${mon.name}">
       <div class="title">${mon.name}</div>
       <div class="muted">Lv ${mon.level}</div>
+      <div class="muted">Kills: <span id="monsterKillCount">${killsOf(mon.id)}</span></div>
       <div class="drops-row" aria-label="Notable drops">${dots}</div>
     `;
     card.addEventListener('click', ()=> openCombat(mon));

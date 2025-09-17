@@ -7,7 +7,7 @@ const XP_TABLE = buildXpTable();
 const speedFromLevel = lvl => 1 + 0.02*(lvl-1);
 const clampMs = (ms)=> Math.max(100, ms);
 
-export const UPGRADE_METALS = ['copper','bronze','iron'];
+export const UPGRADE_METALS = ['copper','bronze','iron', 'steel', 'blacksteel'];
 
 export const upgradeBarIdForMetal = (metal='copper') => `${metal}_upgrade_bar`;
 
@@ -20,12 +20,44 @@ export const upgradeBarIdForBase = (baseId='') => {
   return m ? upgradeBarIdForMetal(m) : null;
 };
 
-// Quality roll for equipment creation
-export function rollQuality(smithLvl){
-  const base = 15 + 1.6*smithLvl;
-  const spread = 35 + 0.7*smithLvl;
-  const q = Math.floor(base + Math.random()*spread);
-  return Math.max(1, Math.min(100, q));
+// ---------- Quality roll tuned by reqLevel (req → req+20 window) ----------
+/**
+ * Returns an integer quality 1..100.
+ * Bias increases linearly from the recipe's required level (t=0) to req+20 (t=1).
+ * Past req+20 we clamp at the best bias. Below req we clamp at the worst bias.
+ *
+ * Tunables:
+ *   Q_MEAN_LO:   average quality at req level
+ *   Q_MEAN_HI:   average quality at req+20
+ *   Q_SPREAD_LO: spread at req (wider/less consistent)
+ *   Q_SPREAD_HI: spread at req+20 (tighter/more consistent)
+ */
+const Q_MEAN_LO = 35;
+const Q_MEAN_HI = 88;
+const Q_SPREAD_LO = 36;
+const Q_SPREAD_HI = 18;
+
+function lerp(a,b,t){ return a + (b-a)*t; }
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+/** @param {number} smithLvl player smithing level
+ *  @param {number} reqLevel recipe required level
+ */
+export function rollQuality(smithLvl, reqLevel=1){
+  const t = clamp((smithLvl - reqLevel) / 20, 0, 1); // 0 at req, 1 at req+20+
+  const mean   = lerp(Q_MEAN_LO,   Q_MEAN_HI,   t);
+  const spread = lerp(Q_SPREAD_LO, Q_SPREAD_HI, t);
+
+  // Sample uniform around mean with clamped integer result
+  const lo = mean - spread/2;
+  const hi = mean + spread/2;
+  const raw = lo + Math.random() * (hi - lo);
+
+  // Small upward nudge with skill so high skill slightly prefers the top half
+  const bias = (t * 6) * Math.random(); // up to +6 at t=1
+  const q = Math.round(raw + bias);
+
+  return clamp(q, 1, 100);
 }
 
 // ---- extras (e.g., wood_handle) ----
@@ -43,6 +75,12 @@ function barIdFor(rec){
   return rec?.barId || (rec?.metal ? `bar_${rec.metal}` : 'bar_copper');
 }
 
+// Monotonic job sequence for race-proof completions
+function nextJobId(state){
+  state._jobSeq = (state._jobSeq || 0) + 1;
+  return state._jobSeq;
+}
+
 /* -------------------- Smelting -------------------- */
 export function canSmelt(state, outId='bar_copper'){
   const r = SMELT_RECIPES[outId]; if(!r) return false;
@@ -53,7 +91,7 @@ export function maxSmeltable(state, outId='bar_copper'){
   return Math.min(...r.inputs.map(inp => Math.floor((state.inventory[inp.id]||0) / inp.qty)));
 }
 export function startSmelt(state, outId='bar_copper', onDone){
-  //if(state.action) return false;
+  if (state.action) return false; // allow tomes; they don't use state.action
   const r = SMELT_RECIPES[outId]; if(!r) return false;
 
   const need = r.level || 1;
@@ -63,16 +101,19 @@ export function startSmelt(state, outId='bar_copper', onDone){
 
   const dur = clampMs((r.time||2000) / speedFromLevel(lvl));
   const now = performance.now();
+  const jobId = nextJobId(state);
 
   state.action = {
     type:'smith', mode:'smelt', key:outId,
     startedAt: now,
     endsAt: now + dur,
-    duration: dur
+    duration: dur,
+    jobId
   };
 
   setTimeout(()=>{
-    if (state.action?.type==='smith' && state.action?.mode==='smelt' && state.action?.key===outId){
+    if (state.action?.type==='smith' && state.action?.mode==='smelt' &&
+        state.action?.key===outId && state.action?.jobId===jobId){
       onDone?.();
     }
   }, dur);
@@ -106,23 +147,26 @@ export function canForge(state, outId){
   return barsOk && extrasOk && (lvl >= need);
 }
 export function startForge(state, outId, onDone){
-  //if(state.action) return false;
+  if (state.action) return false; // allow tomes; they don't use state.action
   const rec = FORGE_RECIPES.find(x=>x.id===outId); if(!rec) return false;
   if(!canForge(state, outId)) return false;
 
   const lvl = levelFromXp(state.smithXp||0, XP_TABLE);
   const dur = clampMs((rec.time||2000) / speedFromLevel(lvl));
   const now = performance.now();
+  const jobId = nextJobId(state);
 
   state.action = {
     type:'smith', mode:'forge', key:outId,
     startedAt: now,
     endsAt: now + dur,
-    duration: dur
+    duration: dur,
+    jobId
   };
 
   setTimeout(()=>{
-    if (state.action?.type==='smith' && state.action?.mode==='forge' && state.action?.key===outId){
+    if (state.action?.type==='smith' && state.action?.mode==='forge' &&
+        state.action?.key===outId && state.action?.jobId===jobId){
       onDone?.();
     }
   }, dur);
@@ -140,7 +184,7 @@ export function finishForge(state){
 
   const lvl = levelFromXp(state.smithXp || 0, XP_TABLE);
   const giveQuality = (rec.kind !== 'material') && (rec.quality !== false);
-  const outId = giveQuality ? `${rec.id}@${rollQuality(lvl)}` : rec.id;
+  const outId = giveQuality ? `${rec.id}@${rollQuality(lvl, rec.level || 1)}` : rec.id;
 
   addItem(state, outId, 1);
   const gain = rec.xp || 0;
@@ -156,11 +200,9 @@ function parseId(id=''){
   const q = qStr ? Math.max(1, Math.min(100, parseInt(qStr,10)||0)) : null;
   return { base, q };
 }
-// Currently limit upgrades to copper gear (matches existing upgrade-bar type)
 function isUpgradeableGear(baseId){
-  return !!metalFromBase(baseId); // any listed metal prefix (copper/bronze/iron)
+  return !!metalFromBase(baseId);
 }
-
 function rollUpgradeDelta(smithLvl){
   // ~10–25%, slightly higher with Smithing
   const min = 10 + Math.floor(smithLvl/20);
@@ -241,4 +283,3 @@ export function applyUpgrade(state, token){
 
   return result;
 }
-

@@ -50,10 +50,109 @@ const el = {
   cookHint:    qs('#cookHint'),
 };
 
-function wireSaveReset(){
-  const saveBtn  = document.getElementById('saveBtn');
-  const resetBtn = document.getElementById('resetBtn');
+// --- Manual save Export/Import helpers ---
+function exportSaveFile() {
+  const KEY = 'runecut-save';
+  // Prefer what's on disk; fallback to current in-memory state
+  const data = localStorage.getItem(KEY) || JSON.stringify(state);
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const name = `runecut-save_${stamp}.json`;
 
+  const blob = new Blob([data], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function loadSaveObject(nextObj) {
+  if (!nextObj || typeof nextObj !== 'object') {
+    alert('Invalid save file: not JSON object.');
+    return;
+  }
+
+  // Merge with defaults to avoid missing keys
+  const fresh = defaultState();
+  const merged = { ...fresh, ...nextObj };
+
+  // Replace contents of the *same* state object (keep references stable)
+  for (const k of Object.keys(state)) delete state[k];
+  Object.assign(state, merged);
+
+  // Clamp HP to new max
+  const mx = hpMaxFor(state);
+  state.hpCurrent = Math.min(mx, state.hpCurrent == null ? mx : state.hpCurrent);
+
+  saveState(state);
+
+  // Repaint everything
+  renderInventory();
+  renderSmithing();
+  renderCooking();
+  renderFishing();
+  renderMining();
+  renderCrafting();
+  renderWoodcutting();
+  renderEnchanting();
+  renderCombat();
+  renderSkills();
+  renderEquipment();
+  renderPanelLogs();
+  renderRoyal();
+}
+
+function importSaveFromFile(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const obj = JSON.parse(r.result);
+      loadSaveObject(obj);
+      alert('Save imported successfully.');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to import save: invalid JSON.');
+    }
+  };
+  r.readAsText(file);
+}
+
+// Optional: expose simple console hooks
+window.exportRunecutSave = exportSaveFile;
+window.importRunecutSaveFromText = (txt) => {
+  try { loadSaveObject(JSON.parse(txt)); } catch { alert('Bad JSON'); }
+};
+
+function wireSaveReset(){
+  const saveBtn   = document.getElementById('saveBtn');
+  const resetBtn  = document.getElementById('resetBtn');
+
+  // NEW: export/import controls
+  const exportBtn = document.getElementById('exportBtn');
+  const importBtn = document.getElementById('importBtn');
+  let importInput = document.getElementById('importFile');
+
+  if (!importInput) {
+    importInput = document.createElement('input');
+    importInput.type = 'file';
+    importInput.accept = 'application/json';
+    importInput.id = 'importFile';
+    importInput.hidden = true;
+    document.body.appendChild(importInput);
+  }
+
+  exportBtn?.addEventListener('click', exportSaveFile);
+  importBtn?.addEventListener('click', ()=> importInput?.click());
+  importInput?.addEventListener('change', (e)=>{
+    const f = e.target.files?.[0];
+    if (f) importSaveFromFile(f);
+    // reset input so choosing the same file again still fires change
+    e.target.value = '';
+  });
+
+  // existing Save button
   saveBtn?.addEventListener('click', ()=>{
     try{
       saveState(state);
@@ -66,15 +165,14 @@ function wireSaveReset(){
     }
   });
 
+  // existing Reset button
   resetBtn?.addEventListener('click', ()=>{
     if(!confirm('Reset your progress? This cannot be undone.')) return;
 
     try{ localStorage.removeItem('runecut-save'); }catch{}
-
     const fresh = defaultState();
     for (const k of Object.keys(state)) delete state[k];
     Object.assign(state, fresh);
-
     state.hpCurrent = hpMaxFor(state);
     saveState(state);
 
@@ -90,10 +188,11 @@ function wireSaveReset(){
     renderEquipment();
     renderEnchanting();
     renderPanelLogs();
-    renderRoyal();               // ensure Royal panel shows fresh state
+    renderRoyal();
     setTab('forests');
   });
 }
+
 
 // ---- initial renders --------------------------------------------------------
 function initialPaint(){
@@ -136,6 +235,8 @@ window.addEventListener('inventory:change', () => {
 let rafId = 0;
 let last = performance.now();
 let regenCarry = 0;
+const REGEN_RATE = 1;
+const REGEN_COOLDOWN_MS = 2000;
 
 function verbFor(type){
   switch(type){
@@ -178,15 +279,24 @@ function tick(){
   // Passive HP regen when not in combat
   if (!state.combat){
     const maxHp = hpMaxFor(state);
-    if (state.hpCurrent < maxHp){
-      regenCarry += dt;
-      const rate = 0.5; // HP per second
-      const whole = Math.floor(regenCarry * rate);
-      if (whole > 0){
-        state.hpCurrent = Math.min(maxHp, state.hpCurrent + whole);
+    const curHp = (state.hpCurrent == null) ? maxHp : state.hpCurrent;
+
+    // optional cooldown after damage (set state.lastDamageMs when you take damage)
+    const lastHit = Number(state.lastDamageMs) || 0;
+    const sinceDmg = lastHit > 0 ? Math.max(0, now - lastHit) : Infinity;
+
+    if (curHp < maxHp && sinceDmg >= REGEN_COOLDOWN_MS){
+      regenCarry += dt;                          // accumulate elapsed seconds
+      const toHeal = Math.floor(regenCarry * REGEN_RATE);
+      if (toHeal > 0){
+        state.hpCurrent = Math.min(maxHp, curHp + toHeal);
+        regenCarry -= toHeal / REGEN_RATE;       // consume just what we applied
         renderEquipment();
         renderCombat();
       }
+    } else {
+      // don't let carry build up while full HP or in cooldown
+      regenCarry = 0;
     }
   }
 

@@ -5,7 +5,13 @@ export const SMELT_RECIPES = {
     time: 2000, 
     xp: 6, 
     inputs: [{ id: 'ore_copper', qty: 1 }] 
-  },  
+  },
+  glass_glob: { 
+    name: 'Glass Glob', 
+    time: 2200, 
+    xp: 10, 
+    inputs: [{ id: 'silica_sand', qty: 1 }] 
+  },
   bar_bronze: {
     name: 'Bronze Bar',
     level: 10,

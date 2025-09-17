@@ -14,6 +14,10 @@
     <div class="row">
       <button id="saveBtn" class="btn-success">Save</button>
       <button id="resetBtn" class="btn-danger">Reset</button>
+      <button id="exportBtn">Export Save</button>
+      <button id="importBtn">Import Save</button>
+      <input id="importFile" type="file" accept="application/json" hidden>
+
       <span class="pill" title="Autosaves every 30s"><span>💾</span> Autosave <b>ON</b></span>
     </div>
   </header>
@@ -228,15 +232,6 @@
               <button id="smeltOneBtn"  class="btn-primary">Smelt 1</button>
               <button id="smeltAllBtn"  class="btn-primary">Smelt All</button>
             </div>
-          
-            <div class="row" style="gap:10px; margin-bottom:8px;">
-              <span class="pill">Copper Ore: <b id="oreCopperCount">0</b></span>
-              <span class="pill">Tin Ore: <b id="oreTinCount">0</b></span>
-              <span class="pill">Iron Ore: <b id="oreIronCount">0</b></span>
-              <span class="pill">Copper Bars: <b id="copperBarCount">0</b></span>
-              <span class="pill">Bronze Bars: <b id="bronzeBarCount">0</b></span>
-              <span class="pill">Iron Bars: <b id="ironBarCount">0</b></span>
-            </div>
             <div class="progress" style="margin-bottom:8px;">
               <div class="bar" id="smithBar"></div>
               <div class="label" id="smithLabel">Idle</div>
@@ -252,8 +247,6 @@
             </p>
 
             <div class="row" style="gap:8px; margin-bottom:8px; flex-wrap:wrap;">
-              <span class="pill">Upgrade Bars: <b id="upgradeBarCount">0</b></span>
-
               <label class="muted" for="upgradeFilter">Metal</label>
               <select id="upgradeFilter">
                 <option value="all">All</option>
@@ -443,7 +436,7 @@
       </section>
     </div>
     <footer>
-      Notice: Game is in very early development.
+      Version: 1.3.5 Notice: Refresh your page if you encounter a bug.
     </footer>
   </div>
   
