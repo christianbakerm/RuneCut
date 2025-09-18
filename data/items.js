@@ -41,8 +41,9 @@ export const ITEMS = {
   quicksilver_e: { id: 'quicksilver_e', name: 'Quicksilver(e)', img: 'assets/materials/quicksilver.png', glow: true, sell: 30, type: 'material' },
 
   wire_coil:   { id: 'wire_coil',   name: 'Wire Coil',   type: 'resource', sell: 2, img: 'assets/materials/wire-coil.png' },
-  silk_coil:   { id: 'silk_coil',   name: 'Silk Coil',   type: 'resource', sell: 2, img: 'assets/materials/silk-coil.png' },
-  nylon_coil:  { id: 'nylon_coil',  name: 'Nylon Coil',  type: 'resource', sell: 2, img: 'assets/materials/nylon-coil.png' },
+  silk_coil:   { id: 'silk_coil',   name: 'Silk Coil',   type: 'resource', sell: 6, img: 'assets/materials/silk-coil.png' },
+  nylon_coil:  { id: 'nylon_coil',  name: 'Nylon Coil',  type: 'resource', sell: 12, img: 'assets/materials/nylon-coil.png' },
+  nails:       { id: 'nails',       name: 'Nails',       type: 'resource', sell: 1, img: 'assets/materials/nails.png' },
 
   /* ----------------------------- Tools ----------------------------- */
   axe_copper:       { id: 'axe_copper',       name: 'Copper Axe',  type: 'equipment', slot: 'axe',     speed: 1.25, img: 'assets/equipment/bronze-axe.png' },
@@ -80,23 +81,23 @@ export const ITEMS = {
   dolphin:  { id: 'dolphin',  name: 'Dolphin',    type: 'food', heal: 55, sell: 115, img: 'assets/food/dolphin.png' },
 
   /* ------------------------------ Ores ----------------------------- */
-  ore_copper:    { id: 'ore_copper',    name: 'Copper Ore',   type: 'resource', sell: 1,  img: 'assets/materials/ore.png' },
-  ore_tin:       { id: 'ore_tin',       name: 'Tin Ore',      type: 'resource', sell: 2,  img: 'assets/materials/ore.png' },
-  ore_iron:      { id: 'ore_iron',      name: 'Iron Ore',     type: 'resource', sell: 4,  img: 'assets/materials/ore.png' },
-  ore_coal:      { id: 'ore_coal',      name: 'Coal',         type: 'resource', sell: 8,  img: 'assets/materials/coal.png' },
-  ore_nightiron: { id: 'ore_nightiron', name: 'Nightiron Ore', type: 'resource', sell: 16, img: 'assets/materials/nightiron.png' },
+  ore_copper:    { id: 'ore_copper',    name: 'Copper Ore',   type: 'resource', sell: 2,  img: 'assets/materials/ore.png' },
+  ore_tin:       { id: 'ore_tin',       name: 'Tin Ore',      type: 'resource', sell: 4,  img: 'assets/materials/ore.png' },
+  ore_iron:      { id: 'ore_iron',      name: 'Iron Ore',     type: 'resource', sell: 8,  img: 'assets/materials/ore.png' },
+  ore_coal:      { id: 'ore_coal',      name: 'Coal',         type: 'resource', sell: 16,  img: 'assets/materials/coal.png' },
+  ore_nightiron: { id: 'ore_nightiron', name: 'Nightiron Ore', type: 'resource', sell: 32, img: 'assets/materials/nightiron.png' },
 
   /* ------------------------ Smithing resources --------------------- */
   bar_copper:            { id: 'bar_copper',            name: 'Copper Bar',       type: 'resource', sell: 3,   img: 'assets/materials/bar.png' },
-  bar_bronze:            { id: 'bar_bronze',            name: 'Bronze Bar',       type: 'resource', sell: 5,   img: 'assets/materials/bar.png' },
-  bar_iron:              { id: 'bar_iron',              name: 'Iron Bar',         type: 'resource', sell: 8,   img: 'assets/materials/bar.png' },
-  bar_steel:             { id: 'bar_steel',             name: 'Steel Bar',        type: 'resource', sell: 22,  img: 'assets/materials/bar.png' },
-  bar_blacksteel:        { id: 'bar_blacksteel',        name: 'Blacksteel Bar',   type: 'resource', sell: 44,  img: 'assets/materials/bar_nightiron.png' },
-  copper_upgrade_bar:    { id: 'copper_upgrade_bar',    name: 'Copper Upgrade Bar',   type: 'material', sell: 8,  icon: '➕', img: 'assets/equipment/armor-upgrade.png' },
-  bronze_upgrade_bar:    { id: 'bronze_upgrade_bar',    name: 'Bronze Upgrade Bar',   type: 'material', sell: 20, icon: '➕', img: 'assets/equipment/armor-upgrade.png', tint: 'bronze' },
-  iron_upgrade_bar:      { id: 'iron_upgrade_bar',      name: 'Iron Upgrade Bar',     type: 'material', sell: 32, icon: '➕', img: 'assets/equipment/armor-upgrade.png', tint: 'iron' },
-  steel_upgrade_bar:     { id: 'steel_upgrade_bar',     name: 'Steel Upgrade Bar',    type: 'material', sell: 75, icon: '➕', img: 'assets/equipment/armor-upgrade.png', tint: 'steel' },
-  blacksteel_upgrade_bar:{ id: 'blacksteel_upgrade_bar',name: 'Blacksteel Upgrade Bar',type: 'material', sell: 150, icon: '➕', img: 'assets/equipment/upgrade_nightiron.png', tint: 'steel' },
+  bar_bronze:            { id: 'bar_bronze',            name: 'Bronze Bar',       type: 'resource', sell: 8,   img: 'assets/materials/bar.png' },
+  bar_iron:              { id: 'bar_iron',              name: 'Iron Bar',         type: 'resource', sell: 20,   img: 'assets/materials/bar.png' },
+  bar_steel:             { id: 'bar_steel',             name: 'Steel Bar',        type: 'resource', sell: 40,  img: 'assets/materials/bar.png' },
+  bar_blacksteel:        { id: 'bar_blacksteel',        name: 'Blacksteel Bar',   type: 'resource', sell: 90,  img: 'assets/materials/bar_nightiron.png' },
+  copper_upgrade_bar:    { id: 'copper_upgrade_bar',    name: 'Copper Upgrade Bar',   type: 'material', sell: 10,  icon: '➕', img: 'assets/equipment/armor-upgrade.png' },
+  bronze_upgrade_bar:    { id: 'bronze_upgrade_bar',    name: 'Bronze Upgrade Bar',   type: 'material', sell: 28, icon: '➕', img: 'assets/equipment/armor-upgrade.png', tint: 'bronze' },
+  iron_upgrade_bar:      { id: 'iron_upgrade_bar',      name: 'Iron Upgrade Bar',     type: 'material', sell: 70, icon: '➕', img: 'assets/equipment/armor-upgrade.png', tint: 'iron' },
+  steel_upgrade_bar:     { id: 'steel_upgrade_bar',     name: 'Steel Upgrade Bar',    type: 'material', sell: 140, icon: '➕', img: 'assets/equipment/armor-upgrade.png', tint: 'steel' },
+  blacksteel_upgrade_bar:{ id: 'blacksteel_upgrade_bar',name: 'Blacksteel Upgrade Bar',type: 'material', sell: 300, icon: '➕', img: 'assets/equipment/upgrade_nightiron.png', tint: 'steel' },
 
   /* --------------------------- Copper set -------------------------- */
   copper_helm:   { id: 'copper_helm',   name: 'Copper Helm',     type: 'equipment', slot: 'head',   def: 3,  sell: 6,  img: 'assets/equipment/bronze-helm.png',   reqDef: 1 },
