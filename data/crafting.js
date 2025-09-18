@@ -4,6 +4,7 @@ export const CRAFT_RECIPES = {
     id: 'wood_handle',
     name: 'Wood Handle',
     time: 1800,
+    lvl: 1,
     inputs:  [{ id:'log_oak', qty:1 }],
     outputs: [{ id:'wood_handle', qty:1 }],
     xp: [{ skill: 'craft', amount: 6 }],
@@ -12,6 +13,7 @@ export const CRAFT_RECIPES = {
   pages_from_oak: {
     id: 'pages_from_oak',
     name: 'Pages',
+    lvl: 1,
     time: 1600,
     inputs:  [{ id:'log_oak', qty:1 }],
     outputs: [{ id:'pages', qty:5 }],
@@ -21,6 +23,7 @@ export const CRAFT_RECIPES = {
   pages_from_pine: {
     id: 'pages_from_pine',
     name: 'Pages',
+    lvl: 1,
     time: 1600,
     inputs:  [{ id:'log_pine', qty:1 }],
     outputs: [{ id:'pages', qty:10 }],

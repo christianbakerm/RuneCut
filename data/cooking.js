@@ -1,8 +1,8 @@
 // data/cooking.js
 // Map RAW id → cooked id, base time (ms), and XP awarded on success.
 export const COOK_RECIPES = {
-  raw_shrimps: { cooked:'shrimps', xp:10, lvl: 2 },
-  raw_trout:   { cooked:'trout',   xp:15, lvl: 6 },
+  raw_shrimps: { cooked:'shrimps', id: 'shrimps', xp:10, lvl: 1 },
+  raw_trout:   { cooked:'trout',   xp:15, lvl: 5 },
   raw_eel:     { cooked:'eel',     xp:24, lvl: 12 },
   raw_salmon:  { cooked:'salmon',  xp:50, lvl: 24 },
   raw_halibut: { cooked:'halibut', xp:75, lvl: 36 },
