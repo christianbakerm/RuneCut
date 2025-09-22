@@ -90,7 +90,7 @@ export const MONSTERS = [
   { id:'dune_titan', name:'Dune Titan', level:36, time:5600,
     zone:'Wastes', hp:340, attack:44, defense:36, maxHit:30,
     xp:{attack:360,strength:360,defense:360},
-    drops:[{gold:46, chance:0.7}],
+    drops:[{gold:46, chance:0.7}, {id: 'sandreaver', chance: 0.05}],
     img:'assets/monsters/dune_titan.png'
   },
 
@@ -104,7 +104,7 @@ export const MONSTERS = [
   { id:'charred_bat', name:'Charred Bat', level:11, time:3400,
     zone:'Volcano', hp:70, attack:15, defense:11, maxHit:9,
     xp:{attack:110,strength:110,defense:110},
-    drops:[{gold:12, chance:0.7}],
+    drops:[{gold:12, chance:0.7}, { id:'bat_teeth', chance:0.22, min:1, max:1 }],
     img:'assets/monsters/charred_bat.png'
   },
   { id:'magma_goblin', name:'Magma Goblin', level:16, time:3800,
@@ -134,7 +134,7 @@ export const MONSTERS = [
   { id:'inferno_colossus', name:'Inferno Colossus', level:44, time:5800,
     zone:'Volcano', hp:440, attack:58, defense:48, maxHit:38,
     xp:{attack:440,strength:440,defense:440},
-    drops:[{gold:62, chance:0.7}],
+    drops:[{gold:62, chance:0.7}, {id: 'obsidian_maul', chance: .04}],
     img:'assets/monsters/inferno_colossus.png'
   },
 
@@ -148,13 +148,13 @@ export const MONSTERS = [
   { id:'crypt_bat', name:'Crypt Bat', level:13, time:3600,
     zone:'Crypts', hp:95, attack:18, defense:14, maxHit:11,
     xp:{attack:130,strength:130,defense:130},
-    drops:[{gold:16, chance:0.7}],
+    drops:[{gold:16, chance:0.7},{ id:'bat_teeth', chance:0.22, min:1, max:1 }],
     img:'assets/monsters/crypt_bat.png'
   },
   { id:'grave_ghoul', name:'Grave Ghoul', level:18, time:4000,
     zone:'Crypts', hp:140, attack:25, defense:19, maxHit:16,
     xp:{attack:180,strength:180,defense:180},
-    drops:[{gold:24, chance:0.7}],
+    drops:[{gold:24, chance:0.7},{ id:'ghoul_eye', chance:0.20 }],
     img:'assets/monsters/grave_ghoul.png'
   },
   { id:'tomb_knight', name:'Tomb Knight', level:24, time:4400,
