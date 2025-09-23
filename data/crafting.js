@@ -75,6 +75,25 @@ export const CRAFT_RECIPES = {
     xp: [{ skill: 'craft', amount: 100 }],
     speedSkill: 'craft',
   },
+  pages_from_runewood: {
+    id: 'pages_from_runewood',
+    name: 'Pages',
+    time: 2000,
+    inputs:  [{ id:'log_runewood', qty:1 }],
+    outputs: [{ id:'pages', qty:60 }],
+    xp: [{ skill: 'craft', amount: 180 }],
+    speedSkill: 'craft',
+  },
+  pages_from_elderwood: {
+    id: 'pages_from_elderwood',
+    name: 'Pages',
+    time: 2100,
+    inputs:  [{ id:'log_elderwood', qty:1 }],
+    outputs: [{ id:'pages', qty:80 }],
+    xp: [{ skill: 'craft', amount: 250 }],
+    speedSkill: 'craft',
+  },
+  
 
   // --- Planks from logs ---
   planks_from_oak: {
@@ -200,6 +219,19 @@ export const CRAFT_RECIPES = {
     level: 22,
     outputs: [{ id:'anglers_pride', qty:1 }],
     xp: [{ skill: 'craft', amount: 70 }],
+    speedSkill: 'craft',
+  },
+  shadowline_rod: {
+    id: 'shadowline_rod',
+    name: 'Shadowline Rod',
+    time: 6800,
+    inputs: [
+      { id:'log_maple',  qty:1 },
+      { id:'crypt_cord', qty:1 },
+    ],
+    level: 38,
+    outputs: [{ id:'shadowline_rod', qty:1 }],
+    xp: [{ skill: 'craft', amount: 200 }],
     speedSkill: 'craft',
   },
   empty_vial: {
