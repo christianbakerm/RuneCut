@@ -107,7 +107,7 @@ export const ITEMS = {
   iron_upgrade_bar:      { id: 'iron_upgrade_bar',      name: 'Iron Upgrade Bar',     type: 'material', sell: 70, icon: '➕', img: 'assets/equipment/armor-upgrade.png', tint: 'iron' },
   steel_upgrade_bar:     { id: 'steel_upgrade_bar',     name: 'Steel Upgrade Bar',    type: 'material', sell: 140, icon: '➕', img: 'assets/equipment/armor-upgrade.png', tint: 'steel' },
   blacksteel_upgrade_bar:{ id: 'blacksteel_upgrade_bar',name: 'Blacksteel Upgrade Bar',type: 'material', sell: 300, icon: '➕', img: 'assets/equipment/upgrade_nightiron.png', tint: 'steel' },
-  starsteel_upgrade_bar:{ id: 'starsteel_upgrade_bar',name: 'Starsteel Upgrade Bar',type: 'material', sell: 600, icon: '➕', img: 'assets/equipment/star_upgrade.png', tint: 'steel' },
+  starsteel_upgrade_bar:{ id: 'starsteel_upgrade_bar',name: 'Starsteel Upgrade Bar',type: 'material', sell: 600, icon: '➕', img: 'assets/equipment/star_upgrade.png'},
 
   /* --------------------------- Copper set -------------------------- */
   copper_helm:   { id: 'copper_helm',   name: 'Copper Helm',     type: 'equipment', slot: 'head',   def: 3,  sell: 6,  img: 'assets/equipment/bronze-helm.png',   reqDef: 1 },
@@ -187,7 +187,7 @@ export const ITEMS = {
   /* Rare weapons (+10%) */
   starsteel_dagger_rare: { id: 'starsteel_dagger_rare', name: 'Rare Starsteel Dagger',  type: 'equipment', slot: 'weapon', atk: 35, str: 18, sell: 350, img: 'assets/equipment/rare_stardagger.png', tint: 'starsteel', reqAtk: 45 },
   starsteel_sword_rare:  { id: 'starsteel_sword_rare',  name: 'Rare Starsteel Sword',   type: 'equipment', slot: 'weapon', atk: 44, str: 33, sell: 750, img: 'assets/equipment/rare_starsword.png',  tint: 'starsteel', reqAtk: 45 },
-  starsteel_axe_rare:    { id: 'starsteel_axe_rare',    name: 'Rare Starsteel Axe',     type: 'equipment', slot: 'weapon', atk: 32, str: 50, sell: 750, img: 'assets/equipment/rare_staraxe.png',   tint: 'starsteel', reqAtk: 45 },
+  starsteel_axe_rare:    { id: 'starsteel_axe_rare',    name: 'Rare Starsteel Axe',     type: 'equipment', slot: 'weapon', atk: 32, str: 60, sell: 750, img: 'assets/equipment/rare_staraxe.png',   tint: 'starsteel', reqAtk: 45 },
 
   /* ----------------------------- Tools ----------------------------- */
   pick_starsteel: { id: 'pick_starsteel', name: 'Starsteel Pick', type: 'equipment', slot: 'pick', speed: 2.25, img: 'assets/equipment/starpick.png', tint: 'starsteel' },
@@ -203,7 +203,7 @@ export const ITEMS = {
     name: 'Novice Forest Tome',
     type: 'equipment',
     slot: 'tome',
-    img: 'assets/materials/book.png',
+    img: 'assets/materials/forestbook.png',
     tint: 'forest',
     sell: 25,
     tome: {
@@ -220,7 +220,7 @@ export const ITEMS = {
     name: 'Novice Sea Tome',
     type: 'equipment',
     slot: 'tome',
-    img: 'assets/materials/book.png',
+    img: 'assets/materials/seabook.png',
     tint: 'sea',
     sell: 25,
     tome: {
@@ -237,7 +237,7 @@ export const ITEMS = {
     name: 'Novice Rock Tome',
     type: 'equipment',
     slot: 'tome',
-    img: 'assets/materials/book.png',
+    img: 'assets/materials/rockbook.png',
     tint: 'rock',
     sell: 25,
     tome: {
@@ -410,4 +410,18 @@ export const ITEMS = {
     durationSec: 60,
     sell: 25
   },
+
+  gem_sapphire: { id:'gem_sapphire', name:'Sapphire',    type:'gem', sell:200,  img:'assets/gems/gem_sapphire.png' },
+  gem_ruby:     { id:'gem_ruby',     name:'Ruby',        type:'gem', sell:400,  img:'assets/gems/gem_ruby.png' },
+  gem_emerald:  { id:'gem_emerald',  name:'Emerald',     type:'gem', sell:600,  img:'assets/gems/gem_emerald.png' },
+  gem_diamond:  { id:'gem_diamond',  name:'Diamond',     type:'gem', sell:1000, img:'assets/gems/gem_diamond.png' },
+  gem_starstone:{ id:'gem_starstone',name:'Starstone',   type:'gem', sell:2000, img:'assets/gems/gem_starstone.png' },
+  sapphire_ring: { id:'sapphire_ring', name:'Sapphire Ring', type:'equipment', slot:'ring', sell:260,  img:'assets/gems/ring_sapphire.png' },
+  ruby_ring:     { id:'ruby_ring',     name:'Ruby Ring',     type:'equipment', slot:'ring', sell:480,  img:'assets/gems/ring_ruby.png' },
+  emerald_ring:  { id:'emerald_ring',  name:'Emerald Ring',  type:'equipment', slot:'ring', sell:685,  img:'assets/gems/ring_emerald.png' },
+  diamond_ring:  { id:'diamond_ring',  name:'Diamond Ring',  type:'equipment', slot:'ring', sell:1100, img:'assets/gems/ring_diamond.png' },
+  starstone_ring:{ id:'starstone_ring',name:'Starstone Ring',type:'equipment', slot:'ring', sell:2300, img:'assets/gems/ring_starstone.png' },
+  gold_ring: { id:'gold_ring', name:'Gold Ring', type:'equipment', slot:'ring', sell:50,  img:'assets/gems/ring.png' },
+
 };
+
